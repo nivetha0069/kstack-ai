@@ -1125,6 +1125,347 @@ function MigrationTimeline({ setModal }) {
   );
 }
 
+/* ─── Technical Architecture Diagram ─── */
+
+const diagramLayers = [
+  {
+    id: "channels",
+    label: "Layer 1 — User / Channel Layer",
+    color: laneThemes.channel.accent,
+    bg: laneThemes.channel.tint,
+    border: laneThemes.channel.border,
+    boxes: [
+      { id: "portal", label: "Service Portal", sub: "Primary UI", icon: Bot },
+      { id: "teams", label: "Teams Bot", sub: "Future channel", icon: MessageSquareText },
+      { id: "api", label: "Web App / API", sub: "Future channel", icon: Globe2 },
+    ],
+  },
+  {
+    id: "entry",
+    label: "Layer 2 — ServiceNow Entry + State",
+    color: laneThemes.servicenow.accent,
+    bg: laneThemes.servicenow.tint,
+    border: laneThemes.servicenow.border,
+    boxes: [
+      { id: "ajax", label: "ChatAgentAjax", sub: "Ajax bridge", icon: Cable },
+      { id: "conv", label: "Conversation Table", sub: "Async state machine", icon: Database },
+      { id: "worker", label: "ChatAgentAjaxWorker", sub: "Runtime controller", icon: Workflow },
+    ],
+  },
+  {
+    id: "provider",
+    label: "Layer 3 — LLM Provider Router",
+    color: laneThemes.provider.accent,
+    bg: laneThemes.provider.tint,
+    border: laneThemes.provider.border,
+    boxes: [
+      { id: "llmclient", label: "LLMClient", sub: "Current default", icon: BrainCircuit },
+      { id: "bedrock", label: "Bedrock Spoke", sub: "ServiceNow-native", icon: Cloud },
+      { id: "gateway", label: "External Gateway", sub: "Optional future", icon: Cable },
+    ],
+  },
+  {
+    id: "reasoning",
+    label: "Layer 4 — Reasoning + Governance",
+    color: "#5B4BDB",
+    bg: laneThemes.ai.tint,
+    border: laneThemes.ai.border,
+    boxes: [
+      { id: "supervisor", label: "Supervisor Agent", sub: "Intent classifier", icon: Network },
+      { id: "orchestrator", label: "NowLLMOrchestrator", sub: "ReAct prompting", icon: BrainCircuit },
+      { id: "guard", label: "GuardPolicyEvaluator", sub: "Risk gating", icon: ShieldCheck },
+    ],
+  },
+  {
+    id: "specialists",
+    label: "Layer 5 — Specialist Agents",
+    color: "#5B4BDB",
+    bg: "#F5F3FF",
+    border: "#DDD8FF",
+    boxes: [
+      { id: "itsm_agent", label: "ITSM Operator", sub: "Incidents / work notes", icon: ClipboardCheck },
+      { id: "cmdb_agent", label: "CMDB Analyst", sub: "Dependencies / CSV", icon: GitBranch },
+      { id: "kb_agent", label: "KB Assistant", sub: "Search / navigate", icon: Search },
+      { id: "dev_agent", label: "Developer Operator", sub: "Architecture / debug", icon: Code2 },
+      { id: "app_agent", label: "App Context Analyst", sub: "792 / Referral", icon: FileText },
+      { id: "plan_agent", label: "Planning Coordinator", sub: "Composite workflows", icon: ClipboardCheck },
+    ],
+  },
+  {
+    id: "execution",
+    label: "Layer 6 — Tool Execution",
+    color: laneThemes.tool.accent,
+    bg: laneThemes.tool.tint,
+    border: laneThemes.tool.border,
+    boxes: [
+      { id: "toolrouter", label: "ToolRouter", sub: "Registry lookup + dispatch", icon: Route },
+      { id: "itsm_tools", label: "ITSM Tools", sub: "incident table", icon: ClipboardCheck },
+      { id: "cmdb_tools", label: "CMDB Tools", sub: "cmdb_ci / cmdb_rel_ci", icon: GitBranch },
+      { id: "kb_tools", label: "KB / Nav Tools", sub: "kb_knowledge", icon: Search },
+    ],
+  },
+  {
+    id: "evidence",
+    label: "Layer 7 — Evidence + Audit",
+    color: laneThemes.data.accent,
+    bg: laneThemes.data.tint,
+    border: laneThemes.data.border,
+    boxes: [
+      { id: "records", label: "ServiceNow Records", sub: "System of record", icon: Database },
+      { id: "csv", label: "CSV / Attachments", sub: "Exportable evidence", icon: FileText },
+      { id: "telemetry", label: "Telemetry + Logs", sub: "Route / tool / latency", icon: Gauge },
+      { id: "killswitch", label: "Kill Switches", sub: "8 safety controls", icon: ShieldCheck },
+    ],
+  },
+];
+
+const diagramConnections = [
+  { from: "channels", to: "entry", label: "Submit prompt" },
+  { from: "entry", to: "provider", label: "Route to provider" },
+  { from: "provider", to: "reasoning", label: "LLM response" },
+  { from: "reasoning", to: "specialists", label: "Delegate to specialist" },
+  { from: "specialists", to: "execution", label: "Tool calls" },
+  { from: "execution", to: "evidence", label: "Persist results" },
+];
+
+function TechArchitectureDiagram({ setModal }) {
+  const [hoveredLayer, setHoveredLayer] = useState(null);
+  const [diagramView, setDiagramView] = useState("full");
+
+  const currentOnlyLayers = ["channels", "entry", "reasoning", "execution", "evidence"];
+  const visibleLayers = diagramView === "current"
+    ? diagramLayers.filter((l) => currentOnlyLayers.includes(l.id))
+    : diagramLayers;
+
+  const visibleConnections = diagramView === "current"
+    ? [
+        { from: "channels", to: "entry", label: "Submit prompt" },
+        { from: "entry", to: "reasoning", label: "LLM call" },
+        { from: "reasoning", to: "execution", label: "Tool calls" },
+        { from: "execution", to: "evidence", label: "Persist results" },
+      ]
+    : diagramConnections;
+
+  return (
+    <div className="mx-auto mt-12 max-w-7xl">
+      <div className="mb-8 flex flex-wrap justify-center gap-2">
+        {[
+          { key: "full", label: "Full v2 Architecture" },
+          { key: "current", label: "Current Architecture" },
+        ].map((opt) => (
+          <Button
+            key={opt.key}
+            variant={diagramView === opt.key ? "solid" : "outline"}
+            active={diagramView === opt.key}
+            onClick={() => setDiagramView(opt.key)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+
+      <Card className={cn("overflow-visible bg-white/94", LAYOUT.cardRadius)}>
+        <div className={cn(LAYOUT.cardPadLoose, "overflow-x-auto")}>
+          <div className="mb-6 text-center">
+            <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenDark }}>
+              {diagramView === "current" ? "Current state" : "Proposed v2"} technical architecture
+            </div>
+            <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#112245] md:text-3xl">
+              {diagramView === "current"
+                ? "ServiceNow-native agent — current flow"
+                : "KeenStack AI Agent v2 — layered architecture"}
+            </h3>
+            <p className="mx-auto mt-2 max-w-2xl text-sm text-[#5B6A8A]">
+              {diagramView === "current"
+                ? "User prompt flows through the ServiceNow backend to LLM, tools, and back to the portal."
+                : "Provider router, multi-agent routing, and kill switches layered onto the stable ServiceNow execution plane."}
+            </p>
+          </div>
+
+          <div className="relative">
+            {/* Layer rows with connector arrows between them */}
+            {visibleLayers.map((layer, layerIdx) => {
+              const isHovered = hoveredLayer === layer.id;
+              const conn = visibleConnections.find((c) => c.from === layer.id);
+              return (
+                <React.Fragment key={layer.id}>
+                <motion.div
+                  className="relative"
+                  style={{ zIndex: isHovered ? 10 : 1 }}
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ delay: layerIdx * 0.07, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  onMouseEnter={() => setHoveredLayer(layer.id)}
+                  onMouseLeave={() => setHoveredLayer(null)}
+                >
+                  <motion.div
+                    className="rounded-[20px] border p-4 transition-all duration-200"
+                    style={{
+                      background: isHovered ? "white" : layer.bg,
+                      borderColor: isHovered ? layer.color : layer.border,
+                      boxShadow: isHovered
+                        ? `0 12px 36px rgba(17,34,69,0.14), 0 0 0 2px ${layer.border}`
+                        : "0 4px 16px rgba(17,34,69,0.06)",
+                    }}
+                  >
+                    {/* Layer label bar */}
+                    <div className="mb-3 flex items-center gap-3">
+                      <div
+                        className="flex h-7 w-7 items-center justify-center rounded-[10px] text-xs font-bold text-white"
+                        style={{ background: layer.color }}
+                      >
+                        {layerIdx + 1}
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: layer.color }}>
+                        {layer.label.replace(/Layer \d+/, `Layer ${layerIdx + 1}`)}
+                      </span>
+                    </div>
+
+                    {/* Boxes in this layer */}
+                    <div className={cn(
+                      "grid gap-3",
+                      layer.boxes.length <= 3 ? "md:grid-cols-3" :
+                      layer.boxes.length <= 4 ? "md:grid-cols-4" :
+                      "md:grid-cols-6"
+                    )}>
+                      {layer.boxes.map((box) => {
+                        const BoxIcon = box.icon;
+                        return (
+                          <motion.button
+                            key={box.id}
+                            whileHover={{ y: -4, scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="rounded-[14px] border bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md"
+                            style={{ borderColor: layer.border }}
+                            onClick={() => {
+                              const node = [...currentArchitecture, ...nextArchitecture]
+                                .flatMap((l) => l.nodes)
+                                .find((n) => n.title === box.label);
+                              if (node) {
+                                openNodeModal(node, diagramView === "current" ? "current" : "next", setModal);
+                              } else {
+                                setModal({
+                                  title: box.label,
+                                  icon: box.icon,
+                                  eyebrow: layer.label,
+                                  body: box.sub,
+                                  sections: [
+                                    { label: "Layer", value: layer.label },
+                                    { label: "Role", value: box.sub },
+                                  ],
+                                });
+                              }
+                            }}
+                          >
+                            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: layer.bg, color: layer.color }}>
+                              <BoxIcon className="h-4.5 w-4.5" />
+                            </div>
+                            <div className="text-sm font-bold tracking-[-0.02em] text-[#112245]">{box.label}</div>
+                            <div className="mt-0.5 text-[11px] leading-4 text-[#5B6A8A]">{box.sub}</div>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                </motion.div>
+                {conn && (
+                  <div className="flex items-center justify-center py-2">
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        className="h-6 w-px"
+                        style={{ background: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
+                        animate={{ opacity: [0.3, 0.8, 0.3] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                      <motion.div
+                        animate={{ y: [0, 3, 0] }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <ArrowRight
+                          className="h-4 w-4 rotate-90"
+                          style={{ color: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
+                        />
+                      </motion.div>
+                      <span
+                        className="rounded-full border px-3 py-1 text-[11px] font-semibold"
+                        style={{
+                          color: KS.phantom,
+                          background: "white",
+                          borderColor: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue,
+                        }}
+                      >
+                        {conn.label}
+                      </span>
+                      <motion.div
+                        animate={{ y: [0, 3, 0] }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <ArrowRight
+                          className="h-4 w-4 rotate-90"
+                          style={{ color: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
+                        />
+                      </motion.div>
+                      <motion.div
+                        className="h-6 w-px"
+                        style={{ background: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
+                        animate={{ opacity: [0.3, 0.8, 0.3] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                    </div>
+                  </div>
+                )}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Return path annotation */}
+            <motion.div
+              className="mt-2 flex items-center justify-center gap-2 text-xs font-semibold"
+              style={{ color: KS.phantom60 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
+            >
+              <motion.div
+                animate={{ x: [0, -6, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ArrowRight className="h-4 w-4 rotate-180" />
+              </motion.div>
+              Conversation row updated → Portal polls → Renders final answer + evidence
+              <motion.div
+                animate={{ x: [0, 6, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </motion.div>
+            </motion.div>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 border-t pt-6" style={{ borderColor: KS.slate }}>
+            {[
+              { color: laneThemes.channel.accent, label: "Channels" },
+              { color: laneThemes.servicenow.accent, label: "ServiceNow" },
+              { color: laneThemes.provider.accent, label: "Providers" },
+              { color: "#5B4BDB", label: "Reasoning / Agents" },
+              { color: laneThemes.tool.accent, label: "Execution" },
+              { color: laneThemes.data.accent, label: "Evidence" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full" style={{ background: item.color }} />
+                <span className="text-xs font-semibold text-[#5B6A8A]">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 function SmokeTestCard({ test, index }) {
   return (
     <Card className={cn("bg-white/90", LAYOUT.panelRadius)}>
@@ -1274,6 +1615,11 @@ export default function KeenStackAgentFlowchart() {
         <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
           <SectionTitle eyebrow="Provider strategy" title="Provider paths behind one router" subtitle="Bedrock Spoke is a ServiceNow-native provider option. The provider path should sit behind an LLM Provider Router to avoid hardcoding." />
           <ProviderCards setModal={setModal} />
+        </section>
+
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
+          <SectionTitle eyebrow="Technical diagram" title="Architecture flowchart" subtitle="Layered view of the full v2 architecture. Toggle between current and proposed state. Click any component to open its story." />
+          <TechArchitectureDiagram setModal={setModal} />
         </section>
 
         <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
