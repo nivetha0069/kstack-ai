@@ -1063,7 +1063,6 @@ function ScenarioFlowcharts({ setModal }) {
             <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenDark }}>Interactive flowchart</div>
             <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[#112245] md:text-4xl">{scenario.title}</h3>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#5B6A8A]">{scenario.subtitle}</p>
-            <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.codeBlue }}>Open expanded flow</div>
           </div>
 
           <motion.div key={activeScenario} className="grid gap-4 md:grid-cols-4" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
