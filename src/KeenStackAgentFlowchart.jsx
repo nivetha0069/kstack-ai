@@ -84,22 +84,6 @@ const stagger = {
   show: { transition: { staggerChildren: 0.075, delayChildren: 0.08 } },
 };
 
-function AnimatedRail({ dark = false }) {
-  return (
-    <div className="mx-auto mt-8 flex max-w-xl items-center justify-center gap-3">
-      {[0, 1, 2, 3, 4].map((item) => (
-        <motion.div
-          key={item}
-          className="h-1.5 rounded-full"
-          style={{ background: dark ? "rgba(32,201,160,0.78)" : KS.keenGreen }}
-          animate={{ width: [10, 42, 10], opacity: [0.25, 1, 0.25] }}
-          transition={{ duration: 2.2, repeat: Infinity, delay: item * 0.16, ease: "easeInOut" }}
-        />
-      ))}
-    </div>
-  );
-}
-
 const currentArchitecture = [
   {
     lane: "User Channels",
@@ -293,7 +277,7 @@ const nextArchitecture = [
         title: "Standalone Web App / API Clients",
         icon: Globe2,
         body: "External channels submit through the same stable conversation/job contract instead of duplicating agent logic.",
-        outcome: "One agent backend, many frontends.",
+        outcome: "One agent backend, many channels.",
         devNote: "Expose a stable channel contract: submit message, receive conversation/job id, poll status, render final answer/evidence.",
       },
     ],
@@ -309,7 +293,7 @@ const nextArchitecture = [
         icon: Workflow,
         body: "ServiceNow creates conversation, enqueues work, polls status, and renders final response.",
         outcome: "Avoids timeout whether the request uses LLMClient, Bedrock Spoke, or the AI Orchestration Gateway.",
-        devNote: "This is the timeout fix. Avoid waiting synchronously for long model calls inside the UI request.",
+        devNote: "This is the timeout fix. Avoid waiting synchronously for long model calls inside the original request.",
       },
       {
         id: "n-2-2",
@@ -510,7 +494,7 @@ const nextArchitecture = [
         icon: Layers3,
         body: "All handlers and gateway responses return success, answer, data, links, attachments, toolCalls, error, and telemetry.",
         outcome: "Portal rendering becomes predictable and stable.",
-        devNote: "This prevents blank UI responses caused by handler-specific or provider-specific return shapes.",
+        devNote: "This prevents blank portal responses caused by handler-specific or provider-specific return shapes.",
       },
       {
         id: "n-6-4",
@@ -776,15 +760,15 @@ function cn(...classes) {
 
 const LAYOUT = {
   pageGutter: "px-4 sm:px-6 lg:px-8",
-  sectionY: "py-14 md:py-20",
-  heroY: "pb-12 pt-12 md:pb-16 md:pt-16",
-  cardPad: "p-5 md:p-6",
-  cardPadLoose: "p-5 md:p-8",
-  panelPad: "p-4 md:p-5",
-  compactPad: "p-4",
-  cardRadius: "rounded-[28px]",
-  panelRadius: "rounded-[20px]",
-  gridGap: "gap-5 md:gap-6",
+  sectionY: "py-8 md:py-12",
+  heroY: "pb-8 pt-8 md:pb-10 md:pt-10",
+  cardPad: "p-4 md:p-5",
+  cardPadLoose: "p-4 md:p-6",
+  panelPad: "p-3 md:p-4",
+  compactPad: "p-3",
+  cardRadius: "rounded-[24px]",
+  panelRadius: "rounded-[18px]",
+  gridGap: "gap-4 md:gap-5",
 };
 
 function Card({ children, className = "", style = {}, onClick }) {
@@ -847,10 +831,10 @@ function Button({ children, active, variant = "solid", className = "", ...props 
 
 function SectionTitle({ eyebrow, title, subtitle, dark = false }) {
   return (
-    <motion.div className="mx-auto max-w-4xl text-center" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+    <motion.div className="mx-auto max-w-3xl text-center" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
       <motion.div
         variants={fadeUp}
-        className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] shadow-sm"
+        className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm"
         style={{
           color: KS.keenGreen,
           background: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.86)",
@@ -867,14 +851,13 @@ function SectionTitle({ eyebrow, title, subtitle, dark = false }) {
       <motion.h2
         variants={fadeUp}
         className={cn("tracking-[-0.04em]", dark ? "text-white" : "text-[#112245]")}
-        style={{ fontSize: "clamp(32px, 4vw, 56px)", lineHeight: 1.04, fontWeight: 500 }}
+        style={{ fontSize: "clamp(26px, 3vw, 42px)", lineHeight: 1.06, fontWeight: 500 }}
       >
         {title}
       </motion.h2>
       {subtitle && (
-        <motion.p variants={fadeUp} className={cn("mt-5 text-base leading-8 md:text-lg", dark ? "text-white/70" : "text-[#2B3D65]")}>{subtitle}</motion.p>
+        <motion.p variants={fadeUp} className={cn("mt-2 text-sm leading-6 md:text-base", dark ? "text-white/70" : "text-[#2B3D65]")}>{subtitle}</motion.p>
       )}
-      <AnimatedRail dark={dark} />
     </motion.div>
   );
 }
@@ -996,22 +979,22 @@ function FlowNode({ node, color, active, onClick }) {
         boxShadow: active ? `0 18px 42px rgba(17,34,69,0.18), 0 0 0 4px ${theme.border}` : "0 8px 24px rgba(17,34,69,0.08)",
       }}
     >
-      <div className="relative mb-4 flex items-start justify-between gap-3">
+      <div className="relative mb-2 flex items-center justify-between gap-2">
         <motion.div
-          className="flex h-11 w-11 items-center justify-center rounded-[16px] shadow-sm"
+          className="flex h-9 w-9 items-center justify-center rounded-[12px] shadow-sm"
           style={{ background: KS.white, color: theme.accent }}
           animate={{ rotate: active ? [0, 4, -4, 0] : 0, y: active ? [0, -2, 0] : 0 }}
           transition={{ duration: 2.4, repeat: active ? Infinity : 0, ease: "easeInOut" }}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-4 w-4" />
         </motion.div>
         <motion.div animate={{ x: active ? [0, 4, 0] : 0 }} transition={{ duration: 1.4, repeat: active ? Infinity : 0 }}>
-          <ChevronRight className="mt-2 h-4 w-4 text-[#8C98B0] transition group-hover:translate-x-1" />
+          <ChevronRight className="h-4 w-4 text-[#8C98B0] transition group-hover:translate-x-1" />
         </motion.div>
       </div>
-      <h3 className="relative text-base font-bold tracking-[-0.02em] text-[#112245]">{node.title}</h3>
-      <p className="relative mt-2 line-clamp-3 text-xs leading-5 text-[#5B6A8A]">{node.body}</p>
-      <div className="relative mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: theme.accent }}>Open story</div>
+      <h3 className="relative text-sm font-bold tracking-[-0.02em] text-[#112245]">{node.title}</h3>
+      <p className="relative mt-1 line-clamp-2 text-xs leading-5 text-[#5B6A8A]">{node.body}</p>
+      <div className="relative mt-2 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: theme.accent }}>Open story</div>
     </motion.button>
   );
 }
@@ -1024,9 +1007,9 @@ function Lane({ lane, index, laneCount, activeKey, setActiveKey, mode, setModal 
     <motion.div className="relative" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} transition={{ delay: index * 0.06 }}>
       <Card className={cn("h-full bg-white/88 backdrop-blur", LAYOUT.cardRadius)}>
         <div className={LAYOUT.cardPad}>
-          <div className="mb-5 flex items-center gap-3">
+          <div className="mb-3 flex items-center gap-3">
             <motion.div
-              className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white"
               style={{ background: KS.phantom }}
               animate={{ boxShadow: ["0 0 0 rgba(32,201,160,0)", "0 0 28px rgba(32,201,160,0.28)", "0 0 0 rgba(32,201,160,0)"] }}
               transition={{ duration: 3, repeat: Infinity, delay: index * 0.25 }}
@@ -1038,7 +1021,7 @@ function Lane({ lane, index, laneCount, activeKey, setActiveKey, mode, setModal 
               <h3 className="text-lg font-bold tracking-[-0.03em] text-[#112245]">{lane.lane}</h3>
             </div>
           </div>
-          <motion.div className="space-y-3" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
+          <motion.div className="space-y-2" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
             {lane.nodes.map((node, nodeIndex) => {
               const key = `${mode}-${index}-${nodeIndex}`;
               return (
@@ -1074,7 +1057,7 @@ function Lane({ lane, index, laneCount, activeKey, setActiveKey, mode, setModal 
 
 function ProviderCards({ setModal }) {
   return (
-    <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-3", LAYOUT.gridGap)}>
+    <div className={cn("mx-auto mt-8 grid max-w-7xl md:grid-cols-3", LAYOUT.gridGap)}>
       {providerOptions.map((option) => {
         const Icon = option.icon || BrainCircuit;
         return (
@@ -1094,12 +1077,12 @@ function ProviderCards({ setModal }) {
             })}
           >
             <div className={LAYOUT.cardPad}>
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
-                <Icon className="h-6 w-6" />
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[14px] text-white" style={{ background: KS.phantom }}>
+                <Icon className="h-5 w-5" />
               </div>
-              <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{option.name}</h3>
-              <p className="mt-3 text-sm leading-6 text-[#5B6A8A]">{option.summary}</p>
-              <div className="mt-5 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.greenDark }}>Open provider story</div>
+              <h3 className="text-xl font-semibold tracking-[-0.04em] text-[#112245]">{option.name}</h3>
+              <p className="mt-2 text-sm leading-5 text-[#5B6A8A]">{option.summary}</p>
+              <div className="mt-3 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.greenDark }}>Open provider story</div>
             </div>
           </Card>
         );
@@ -1110,7 +1093,7 @@ function ProviderCards({ setModal }) {
 
 function KillSwitchMatrix({ setModal }) {
   return (
-    <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-2 xl:grid-cols-4", LAYOUT.gridGap)}>
+    <div className={cn("mx-auto mt-8 grid max-w-7xl md:grid-cols-2 xl:grid-cols-4", LAYOUT.gridGap)}>
       {killSwitches.map((item) => {
         const Icon = item.icon || ShieldCheck;
         return (
@@ -1132,15 +1115,15 @@ function KillSwitchMatrix({ setModal }) {
             })}
           >
             <div className={LAYOUT.cardPad}>
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
-                  <Icon className="h-6 w-6" />
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white" style={{ background: KS.phantom }}>
+                  <Icon className="h-5 w-5" />
                 </div>
-                <div className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ background: "#FFF0EF", color: KS.danger, border: "1px solid #F0C9C6" }}>Safety</div>
+                <div className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ background: "#FFF0EF", color: KS.danger, border: "1px solid #F0C9C6" }}>Safety</div>
               </div>
-              <h3 className="text-xl font-semibold tracking-[-0.04em] text-[#112245]">{item.title}</h3>
-              <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#5B6A8A]">{item.action}</p>
-              <div className="mt-5 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.danger }}>Open kill switch</div>
+              <h3 className="text-lg font-semibold tracking-[-0.04em] text-[#112245]">{item.title}</h3>
+              <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#5B6A8A]">{item.action}</p>
+              <div className="mt-3 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.danger }}>Open kill switch</div>
             </div>
           </Card>
         );
@@ -1154,8 +1137,8 @@ function ScenarioFlowcharts({ setModal }) {
   const scenario = scenarioFlowcharts[activeScenario] || scenarioFlowcharts[0];
 
   return (
-    <div className="mx-auto mt-12 max-w-7xl">
-      <div className="mb-6 flex flex-wrap justify-center gap-2">
+    <div className="mx-auto mt-8 max-w-7xl">
+      <div className="mb-4 flex flex-wrap justify-center gap-2">
         {scenarioFlowcharts.map((item, index) => (
           <Button key={item.id} variant={activeScenario === index ? "solid" : "outline"} active={activeScenario === index} onClick={() => setActiveScenario(index)}>
             {item.title}
@@ -1174,23 +1157,23 @@ function ScenarioFlowcharts({ setModal }) {
         })}
       >
         <div className={LAYOUT.cardPadLoose}>
-          <div className="mb-8 text-center">
+          <div className="mb-5 text-center">
             <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenDark }}>Interactive flowchart</div>
-            <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[#112245] md:text-4xl">{scenario.title}</h3>
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#5B6A8A]">{scenario.subtitle}</p>
+            <h3 className="mt-1 text-2xl font-semibold tracking-[-0.05em] text-[#112245] md:text-3xl">{scenario.title}</h3>
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-5 text-[#5B6A8A]">{scenario.subtitle}</p>
           </div>
 
-          <motion.div key={activeScenario} className="grid gap-4 md:grid-cols-4" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
+          <motion.div key={activeScenario} className="grid gap-3 md:grid-cols-4" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
             {scenario.steps.map(([title, text], index) => (
               <motion.div key={`${title}-${index}`} className="relative" variants={fadeUp}>
                 <motion.div
                   whileHover={{ y: -5, scale: 1.02 }}
-                  className={cn("h-full border bg-white", LAYOUT.panelRadius, LAYOUT.panelPad)}
+                  className={cn("h-full border bg-white p-3", LAYOUT.panelRadius)}
                   style={{ borderColor: index % 2 === 0 ? "#BFEBDD" : "#C7D9FF", boxShadow: "0 10px 26px rgba(17,34,69,0.08)" }}
                 >
-                  <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-[12px] text-sm font-bold text-white" style={{ background: index % 2 === 0 ? KS.keenGreen : KS.codeBlue }}>{index + 1}</div>
-                  <h4 className="text-base font-bold tracking-[-0.03em] text-[#112245]">{title}</h4>
-                  <p className="mt-2 text-xs leading-5 text-[#5B6A8A]">{text}</p>
+                  <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-bold text-white" style={{ background: index % 2 === 0 ? KS.keenGreen : KS.codeBlue }}>{index + 1}</div>
+                  <h4 className="text-sm font-bold tracking-[-0.03em] text-[#112245]">{title}</h4>
+                  <p className="mt-1 text-xs leading-5 text-[#5B6A8A]">{text}</p>
                 </motion.div>
                 {index < scenario.steps.length - 1 && (
                   <motion.div className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white p-1 shadow md:block" animate={{ x: [0, 4, 0] }} transition={{ duration: 1.4, repeat: Infinity, delay: index * 0.12 }}>
@@ -1208,12 +1191,10 @@ function ScenarioFlowcharts({ setModal }) {
 
 function MigrationTimeline({ setModal }) {
   return (
-    <div className="mx-auto mt-12 max-w-6xl">
-      <div className="relative space-y-5">
-        <div className="absolute left-6 top-0 hidden h-full w-px md:block" style={{ background: `linear-gradient(${KS.keenGreen}, rgba(255,255,255,0.12), transparent)` }} />
+    <div className="mx-auto mt-8 grid max-w-6xl gap-3 md:grid-cols-2">
         {migrationPhases.map((phase, index) => (
-          <motion.div key={phase.id} initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 140, damping: 20, delay: index * 0.08 }} className="relative flex gap-5">
-            <motion.div className="z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] text-[#112245] shadow-lg" style={{ background: KS.keenGreen }} animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity, delay: index * 0.22 }}>
+          <motion.div key={phase.id} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 140, damping: 20, delay: index * 0.06 }} className="relative flex gap-3">
+            <motion.div className="z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] text-[#112245] shadow-lg" style={{ background: KS.keenGreen }} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 2, repeat: Infinity, delay: index * 0.22 }}>
               <span className="font-bold">{index + 1}</span>
             </motion.div>
             <button
@@ -1228,13 +1209,12 @@ function MigrationTimeline({ setModal }) {
               })}
             >
               <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenLight }}>{phase.phase}</div>
-              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">{phase.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-white/70">{phase.summary}</p>
-              <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.keenGreen }}>Open phase details</div>
+              <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">{phase.title}</h3>
+              <p className="mt-1 line-clamp-2 text-sm leading-5 text-white/70">{phase.summary}</p>
+              <div className="mt-3 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.keenGreen }}>Open phase details</div>
             </button>
           </motion.div>
         ))}
-      </div>
     </div>
   );
 }
@@ -1249,7 +1229,7 @@ const diagramLayers = [
     bg: laneThemes.channel.tint,
     border: laneThemes.channel.border,
     boxes: [
-      { id: "portal", label: "Service Portal", sub: "Primary UI", icon: Bot },
+      { id: "portal", label: "Service Portal", sub: "Primary portal", icon: Bot },
       { id: "teams", label: "Teams Bot", sub: "Future channel", icon: MessageSquareText },
       { id: "api", label: "Web App / API", sub: "Future channel", icon: Globe2 },
     ],
@@ -1361,8 +1341,8 @@ function TechArchitectureDiagram({ setModal }) {
     : diagramConnections;
 
   return (
-    <div className="mx-auto mt-12 max-w-7xl">
-      <div className="mb-8 flex flex-wrap justify-center gap-2">
+    <div className="mx-auto mt-6 max-w-7xl">
+      <div className="mb-4 flex flex-wrap justify-center gap-2">
         {[
           { key: "full", label: "Full v2 Architecture" },
           { key: "current", label: "Current Architecture" },
@@ -1380,23 +1360,23 @@ function TechArchitectureDiagram({ setModal }) {
 
       <Card className={cn("overflow-visible bg-white/94", LAYOUT.cardRadius)}>
         <div className={cn(LAYOUT.cardPadLoose, "overflow-x-auto")}>
-          <div className="mb-6 text-center">
+          <div className="mb-4 text-center">
             <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenDark }}>
               {diagramView === "current" ? "Current state" : "Proposed v2"} technical architecture
             </div>
-            <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#112245] md:text-3xl">
+            <h3 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-[#112245] md:text-2xl">
               {diagramView === "current"
                 ? "ServiceNow-native agent — current flow"
                 : "KeenStack AI Agent v2 — layered architecture"}
             </h3>
-            <p className="mx-auto mt-2 max-w-2xl text-sm text-[#5B6A8A]">
+            <p className="mx-auto mt-1 max-w-2xl text-sm text-[#5B6A8A]">
               {diagramView === "current"
                 ? "User prompt flows through the ServiceNow backend to LLM, tools, and back to the portal."
                 : "Provider router, multi-agent routing, and kill switches layered onto the stable ServiceNow execution plane."}
             </p>
           </div>
 
-          <div className="relative">
+          <div className="relative grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {/* Layer rows with connector arrows between them */}
             {visibleLayers.map((layer, layerIdx) => {
               const isHovered = hoveredLayer === layer.id;
@@ -1404,7 +1384,7 @@ function TechArchitectureDiagram({ setModal }) {
               return (
                 <React.Fragment key={layer.id}>
                 <motion.div
-                  className="relative"
+                  className="relative h-full"
                   style={{ zIndex: isHovered ? 10 : 1 }}
                   initial={{ opacity: 0, x: -30 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -1414,7 +1394,7 @@ function TechArchitectureDiagram({ setModal }) {
                   onMouseLeave={() => setHoveredLayer(null)}
                 >
                   <motion.div
-                    className="rounded-[20px] border p-4 transition-all duration-200"
+                    className="rounded-[18px] border p-3 transition-all duration-200"
                     style={{
                       background: isHovered ? "white" : layer.bg,
                       borderColor: isHovered ? layer.color : layer.border,
@@ -1424,24 +1404,23 @@ function TechArchitectureDiagram({ setModal }) {
                     }}
                   >
                     {/* Layer label bar */}
-                    <div className="mb-3 flex items-center gap-3">
+                    <div className="mb-2 flex items-center gap-2">
                       <div
-                        className="flex h-7 w-7 items-center justify-center rounded-[10px] text-xs font-bold text-white"
+                        className="flex h-6 w-6 items-center justify-center rounded-[9px] text-[11px] font-bold text-white"
                         style={{ background: layer.color }}
                       >
                         {layerIdx + 1}
                       </div>
-                      <span className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: layer.color }}>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: layer.color }}>
                         {layer.label.replace(/Layer \d+/, `Layer ${layerIdx + 1}`)}
                       </span>
                     </div>
 
                     {/* Boxes in this layer */}
                     <div className={cn(
-                      "grid gap-3",
-                      layer.boxes.length <= 3 ? "md:grid-cols-3" :
-                      layer.boxes.length <= 4 ? "md:grid-cols-4" :
-                      "md:grid-cols-6"
+                      "grid gap-2",
+                      layer.boxes.length <= 4 ? "sm:grid-cols-2" :
+                      "sm:grid-cols-2 2xl:grid-cols-3"
                     )}>
                       {layer.boxes.map((box) => {
                         const BoxIcon = box.icon;
@@ -1450,7 +1429,7 @@ function TechArchitectureDiagram({ setModal }) {
                             key={box.id}
                             whileHover={{ y: -4, scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
-                            className="rounded-[14px] border bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md"
+                            className="rounded-[12px] border bg-white p-2.5 text-left shadow-sm transition-shadow hover:shadow-md"
                             style={{ borderColor: layer.border }}
                             onClick={() => {
                               const node = [...currentArchitecture, ...nextArchitecture]
@@ -1472,10 +1451,10 @@ function TechArchitectureDiagram({ setModal }) {
                               }
                             }}
                           >
-                            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: layer.bg, color: layer.color }}>
-                              <BoxIcon className="h-4.5 w-4.5" />
+                            <div className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-[9px]" style={{ background: layer.bg, color: layer.color }}>
+                              <BoxIcon className="h-4 w-4" />
                             </div>
-                            <div className="text-sm font-bold tracking-[-0.02em] text-[#112245]">{box.label}</div>
+                            <div className="text-xs font-bold tracking-[-0.02em] text-[#112245]">{box.label}</div>
                             <div className="mt-0.5 text-[11px] leading-4 text-[#5B6A8A]">{box.sub}</div>
                           </motion.button>
                         );
@@ -1484,10 +1463,10 @@ function TechArchitectureDiagram({ setModal }) {
                   </motion.div>
                 </motion.div>
                 {conn && (
-                  <div className="flex items-center justify-center py-2">
+                  <div className="hidden">
                     <div className="flex items-center gap-2">
                       <motion.div
-                        className="h-6 w-px"
+                         className="h-4 w-px"
                         style={{ background: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
                         animate={{ opacity: [0.3, 0.8, 0.3] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -1497,12 +1476,12 @@ function TechArchitectureDiagram({ setModal }) {
                         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                       >
                         <ArrowRight
-                          className="h-4 w-4 rotate-90"
+                          className="h-3.5 w-3.5 rotate-90"
                           style={{ color: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
                         />
                       </motion.div>
                       <span
-                        className="rounded-full border px-3 py-1 text-[11px] font-semibold"
+                         className="rounded-full border px-2.5 py-0.5 text-[10px] font-semibold"
                         style={{
                           color: KS.phantom,
                           background: "white",
@@ -1516,12 +1495,12 @@ function TechArchitectureDiagram({ setModal }) {
                         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                       >
                         <ArrowRight
-                          className="h-4 w-4 rotate-90"
+                         className="h-3.5 w-3.5 rotate-90"
                           style={{ color: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
                         />
                       </motion.div>
                       <motion.div
-                        className="h-6 w-px"
+                         className="h-4 w-px"
                         style={{ background: layerIdx % 2 === 0 ? KS.keenGreen : KS.codeBlue }}
                         animate={{ opacity: [0.3, 0.8, 0.3] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -1535,7 +1514,7 @@ function TechArchitectureDiagram({ setModal }) {
 
             {/* Return path annotation */}
             <motion.div
-              className="mt-2 flex items-center justify-center gap-2 text-xs font-semibold"
+               className="hidden"
               style={{ color: KS.phantom60 }}
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
@@ -1546,20 +1525,20 @@ function TechArchitectureDiagram({ setModal }) {
                 animate={{ x: [0, -6, 0] }}
                 transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
               >
-                <ArrowRight className="h-4 w-4 rotate-180" />
+                <ArrowRight className="h-3.5 w-3.5 rotate-180" />
               </motion.div>
               Conversation row updated → Portal polls → Renders final answer + evidence
               <motion.div
                 animate={{ x: [0, 6, 0] }}
                 transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
               >
-                <ArrowRight className="h-4 w-4" />
+                 <ArrowRight className="h-3.5 w-3.5" />
               </motion.div>
             </motion.div>
           </div>
 
           {/* Legend */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 border-t pt-6" style={{ borderColor: KS.slate }}>
+           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 border-t pt-4" style={{ borderColor: KS.slate }}>
             {[
               { color: laneThemes.channel.accent, label: "Channels" },
               { color: laneThemes.servicenow.accent, label: "ServiceNow" },
@@ -1609,7 +1588,7 @@ function GatewayContractCards({ setModal }) {
   ];
 
   return (
-    <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-3", LAYOUT.gridGap)}>
+    <div className={cn("mx-auto mt-8 grid max-w-7xl md:grid-cols-3", LAYOUT.gridGap)}>
       {cards.map((card) => {
         const Icon = card.icon;
         return (
@@ -1702,14 +1681,14 @@ export default function KeenStackAgentFlowchart() {
         <section className={cn("mx-auto max-w-7xl", LAYOUT.pageGutter, LAYOUT.heroY)}>
           <div className={cn("grid items-center md:grid-cols-[1.05fr_0.95fr]", LAYOUT.gridGap)}>
             <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-bold shadow-sm" style={{ color: KS.greenDark, border: `1px solid ${KS.greenLight}` }}>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm font-bold shadow-sm" style={{ color: KS.greenDark, border: `1px solid ${KS.greenLight}` }}>
                 <Sparkles className="h-4 w-4" /> Architecture story for agent v2
               </div>
-              <h1 className="leading-[0.96] tracking-[-0.06em] text-[#112245]" style={{ fontFamily: "Sora, Arial, sans-serif", fontSize: "clamp(52px, 7vw, 92px)", fontWeight: 300 }}>
+              <h1 className="leading-[0.98] tracking-[-0.05em] text-[#112245]" style={{ fontFamily: "Sora, Arial, sans-serif", fontSize: "clamp(42px, 6vw, 72px)", fontWeight: 300 }}>
                 From working demo to
                 <span className="block" style={{ color: KS.codeBlue, fontWeight: 500 }}>enterprise agent platform.</span>
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-[#2B3D65]">
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[#2B3D65]">
                 A guided, clickable story of the current ServiceNow-native agent and the next-stage architecture with stability, Bedrock Spoke as a provider path, a dedicated AI Orchestration Gateway, supervisor-led multi-agent routing, and kill-switch safety controls.
               </p>
             </motion.div>
@@ -1717,7 +1696,7 @@ export default function KeenStackAgentFlowchart() {
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}>
               <Card className={cn("bg-white/86", LAYOUT.cardRadius)}>
                 <div className={LAYOUT.cardPad}>
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-3 flex items-center justify-between">
                     <div className="text-sm font-bold uppercase tracking-[0.2em]" style={{ color: KS.greenDark }}>Core principle</div>
                     <ShieldCheck className="h-5 w-5" style={{ color: KS.keenGreen }} />
                   </div>
@@ -1735,13 +1714,13 @@ export default function KeenStackAgentFlowchart() {
                     className={cn("w-full text-left text-white transition hover:opacity-95", LAYOUT.panelRadius, LAYOUT.panelPad)}
                     style={{ background: KS.phantom }}
                   >
-                    <p className="text-lg font-bold leading-8">ServiceNow remains the execution plane. The LLM decides, explains, plans, or delegates. Tools execute. Guard policy controls. Conversation table remembers.</p>
-                    <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.keenGreen }}>Open principle</div>
+                    <p className="text-base font-bold leading-7">ServiceNow remains the execution plane. The LLM decides, explains, plans, or delegates. Tools execute. Guard policy controls. Conversation table remembers.</p>
+                    <div className="mt-3 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.keenGreen }}>Open principle</div>
                   </button>
-                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                  <div className="mt-4 grid gap-2 md:grid-cols-3">
                     {[["Current", "LLMClient + tools"], ["Next", "Provider router + Bedrock"], ["Target", "AI Gateway + multi-agent"]].map(([top, bottom]) => (
                       <div key={top} className={cn("rounded-[18px] text-center", LAYOUT.compactPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
-                        <div className="text-xl font-bold text-[#112245]">{top}</div>
+                        <div className="text-lg font-bold text-[#112245]">{top}</div>
                         <div className="mt-1 text-xs font-bold text-[#5B6A8A]">{bottom}</div>
                       </div>
                     ))}
@@ -1779,7 +1758,7 @@ export default function KeenStackAgentFlowchart() {
             subtitle="Click any feature card to open the story, developer note, and outcome in a popup."
           />
 
-          <div className={cn("mx-auto mt-12 grid", architecture.length >= 6 ? "max-w-[2200px] xl:grid-cols-6" : "max-w-[1800px] xl:grid-cols-5", LAYOUT.gridGap)}>
+          <div className={cn("mx-auto mt-8 grid", architecture.length >= 6 ? "max-w-[2200px] xl:grid-cols-6" : "max-w-[1800px] xl:grid-cols-5", LAYOUT.gridGap)}>
             {architecture.map((lane, index) => (
               <Lane key={lane.lane} lane={lane} index={index} laneCount={architecture.length} activeKey={activeKey} setActiveKey={setActiveKey} mode={view} setModal={setModal} />
             ))}
@@ -1809,13 +1788,6 @@ export default function KeenStackAgentFlowchart() {
         <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
           <SectionTitle eyebrow="Kill switches" title="Safety controls and degradation paths" subtitle="Each safety control opens as a popup with scope, trigger, action, owner, and property/control." />
           <KillSwitchMatrix setModal={setModal} />
-        </section>
-
-        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.56)" }}>
-          <SectionTitle eyebrow="Smoke tests" title="Basic checks for this story" subtitle="Lightweight tests for the interactive architecture story, popups, and missing-icon safety." />
-          <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2">
-            {smokeTests.map((test, index) => <SmokeTestCard key={test.name} test={test} index={index} />)}
-          </div>
         </section>
 
         <section className={cn("text-white", LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: KS.phantom }}>
