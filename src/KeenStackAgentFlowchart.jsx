@@ -521,6 +521,18 @@ function cn(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+const UI = {
+  pageGutter: "px-4 sm:px-6 lg:px-8",
+  sectionY: "py-14 md:py-20",
+  cardPad: "p-5 md:p-6",
+  cardPadLoose: "p-5 md:p-8",
+  panelPad: "p-4 md:p-5",
+  compactPad: "p-4",
+  cardRadius: "rounded-[28px]",
+  panelRadius: "rounded-[20px]",
+  gridGap: "gap-5 md:gap-6",
+};
+
 function Card({ children, className = "", style = {} }) {
   return (
     <div
@@ -542,7 +554,7 @@ function Button({ children, active, variant = "solid", className = "", ...props 
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center rounded-[999px] px-5 py-3 text-sm font-semibold transition duration-200 focus:outline-none focus:ring-4",
+        "inline-flex items-center justify-center rounded-[999px] px-4 py-2.5 text-sm font-semibold transition duration-200 focus:outline-none focus:ring-4 sm:px-5 sm:py-3",
         active
           ? "text-white"
           : isOutline
@@ -594,7 +606,7 @@ function FlowNode({ node, color, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={cn("group w-full rounded-[24px] border p-5 text-left transition duration-300 hover:-translate-y-1", active && "scale-[1.015]")}
+      className={cn("group w-full border text-left transition duration-300 hover:-translate-y-1", UI.panelRadius, UI.panelPad, active && "scale-[1.015]")}
       style={{
         background: active ? KS.white : theme.tint,
         borderColor: active ? theme.accent : theme.border,
@@ -622,8 +634,8 @@ function Lane({ lane, index, activeKey, setActiveKey, mode }) {
 
   return (
     <div className="relative">
-      <Card className="h-full rounded-[32px] bg-white/88 backdrop-blur">
-        <div className="p-5">
+      <Card className={cn("h-full bg-white/88 backdrop-blur", UI.cardRadius)}>
+        <div className={UI.cardPad}>
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
               <LaneIcon className="h-5 w-5" />
@@ -664,7 +676,7 @@ function DetailDrawer({ selected, mode }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.24 }}
-      className="mx-auto mt-8 max-w-6xl rounded-[32px] p-6 text-white"
+      className={cn("mx-auto mt-8 max-w-6xl text-white", UI.cardRadius, UI.cardPad)}
       style={{ background: KS.phantom, boxShadow: "0 24px 70px rgba(17,34,69,0.28)" }}
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-start">
@@ -679,13 +691,13 @@ function DetailDrawer({ selected, mode }) {
           <p className="mt-3 text-base leading-8 text-white/72">{selected.body}</p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-[24px] bg-white/10 p-5 ring-1 ring-white/10">
+            <div className={cn("bg-white/10 ring-1 ring-white/10", UI.panelRadius, UI.panelPad)}>
               <div className="text-xs font-bold uppercase tracking-wide" style={{ color: KS.greenLight }}>
                 {proofLabel}
               </div>
               <p className="mt-2 text-sm font-semibold leading-6 text-white">{value}</p>
             </div>
-            <div className="rounded-[24px] bg-white/10 p-5 ring-1 ring-white/10">
+            <div className={cn("bg-white/10 ring-1 ring-white/10", UI.panelRadius, UI.panelPad)}>
               <div className="text-xs font-bold uppercase tracking-wide" style={{ color: KS.greenLight }}>
                 Developer note
               </div>
@@ -703,8 +715,8 @@ function MiniFlow({ pattern }) {
   const isGood = pattern.tone === "good";
 
   return (
-    <Card className="rounded-[32px]" style={{ background: isGood ? "#EAF9F4" : "#FFF0EF", borderColor: isGood ? "#BFEBDD" : "#F0C9C6" }}>
-      <div className="p-6">
+    <Card className={UI.cardRadius} style={{ background: isGood ? "#EAF9F4" : "#FFF0EF", borderColor: isGood ? "#BFEBDD" : "#F0C9C6" }}>
+      <div className={UI.cardPad}>
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: isGood ? KS.greenDark : KS.danger }}>
             <Icon className="h-6 w-6" />
@@ -728,8 +740,8 @@ function MiniFlow({ pattern }) {
 
 function SmokeTestCard({ test, index }) {
   return (
-    <Card className="rounded-[24px] bg-white/90">
-      <div className="p-5">
+    <Card className={cn("bg-white/90", UI.panelRadius)}>
+      <div className={UI.panelPad}>
         <div className="mb-3 flex items-center justify-between">
           <div className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: "#EAF9F4", color: KS.greenDark, border: "1px solid #BFEBDD" }}>
             Test {index + 1}
@@ -770,7 +782,7 @@ export default function KeenStackAgentFlowchart() {
       }}
     >
       <header className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ background: "rgba(255,255,255,0.78)", borderColor: "rgba(217,222,226,0.8)" }}>
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <div className={cn("mx-auto flex max-w-7xl flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between", UI.pageGutter)}>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white shadow-lg" style={{ background: KS.phantom }}>
               <Bot className="h-6 w-6" />
@@ -796,8 +808,8 @@ export default function KeenStackAgentFlowchart() {
       </header>
 
       <main>
-        <section className="mx-auto max-w-7xl px-6 pb-12 pt-12 md:pb-16 md:pt-16">
-          <div className="grid items-center gap-8 md:grid-cols-[1.05fr_0.95fr]">
+        <section className={cn("mx-auto max-w-7xl pb-12 pt-12 md:pb-16 md:pt-16", UI.pageGutter)}>
+          <div className={cn("grid items-center md:grid-cols-[1.05fr_0.95fr]", UI.gridGap)}>
             <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
               <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-bold shadow-sm" style={{ color: KS.greenDark, border: `1px solid ${KS.greenLight}` }}>
                 <Sparkles className="h-4 w-4" /> Architecture draft for agent v2
@@ -817,15 +829,15 @@ export default function KeenStackAgentFlowchart() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}>
-              <Card className="rounded-[32px] bg-white/86">
-                <div className="p-6">
+              <Card className={cn("bg-white/86", UI.cardRadius)}>
+                <div className={UI.cardPad}>
                   <div className="mb-4 flex items-center justify-between">
                     <div className="text-sm font-bold uppercase tracking-[0.2em]" style={{ color: KS.greenDark }}>
                       Core principle
                     </div>
                     <ShieldCheck className="h-5 w-5" style={{ color: KS.keenGreen }} />
                   </div>
-                  <div className="rounded-[24px] p-5 text-white" style={{ background: KS.phantom }}>
+                  <div className={cn("text-white", UI.panelRadius, UI.panelPad)} style={{ background: KS.phantom }}>
                     <p className="text-lg font-bold leading-8">
                       ServiceNow remains the execution plane. The LLM decides, explains, plans, or delegates. Tools execute. Guard policy controls. Conversation table remembers.
                     </p>
@@ -836,7 +848,7 @@ export default function KeenStackAgentFlowchart() {
                       ["Next", "Provider router + Bedrock"],
                       ["Future", "Multi-agent gateway"],
                     ].map(([top, bottom]) => (
-                      <div key={top} className="rounded-[18px] p-4 text-center" style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
+                      <div key={top} className={cn("rounded-[18px] text-center", UI.compactPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
                         <div className="text-xl font-bold text-[#112245]">{top}</div>
                         <div className="mt-1 text-xs font-bold text-[#5B6A8A]">{bottom}</div>
                       </div>
@@ -849,14 +861,14 @@ export default function KeenStackAgentFlowchart() {
         </section>
 
         {compareMode && (
-          <section className="mx-auto max-w-7xl px-6 pb-10">
-            <Card className="rounded-[32px] bg-white/90">
-              <div className="p-6">
+          <section className={cn("mx-auto max-w-7xl pb-10", UI.pageGutter)}>
+            <Card className={cn("bg-white/90", UI.cardRadius)}>
+              <div className={UI.cardPad}>
                 <div className="mb-5 flex items-center gap-2 text-lg font-bold text-[#112245]">
                   <Layers3 className="h-5 w-5" style={{ color: KS.keenGreen }} /> Quick comparison
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[24px] p-5" style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
+                  <div className={cn(UI.panelRadius, UI.panelPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
                     <h3 className="text-xl font-bold text-[#112245]">What we have</h3>
                     <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]">
                       <li>• Service Portal + async conversation worker</li>
@@ -866,7 +878,7 @@ export default function KeenStackAgentFlowchart() {
                       <li>• CSV/attachment evidence and raw tool call visibility</li>
                     </ul>
                   </div>
-                  <div className="rounded-[24px] p-5" style={{ background: "#EDF4FF", border: "1px solid #C7D9FF" }}>
+                  <div className={cn(UI.panelRadius, UI.panelPad)} style={{ background: "#EDF4FF", border: "1px solid #C7D9FF" }}>
                     <h3 className="text-xl font-bold text-[#112245]">Next stage</h3>
                     <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]">
                       <li>• Regression-tested stable core</li>
@@ -882,7 +894,7 @@ export default function KeenStackAgentFlowchart() {
           </section>
         )}
 
-        <section className="px-6 py-10">
+        <section className={cn(UI.pageGutter, UI.sectionY)}>
           <SectionTitle
             eyebrow={view === "current" ? "Current state" : "Next stage"}
             title={view === "current" ? "What we have built" : "What the next architecture should become"}
@@ -893,7 +905,7 @@ export default function KeenStackAgentFlowchart() {
             }
           />
 
-          <div className="mx-auto mt-12 grid max-w-[1800px] gap-5 xl:grid-cols-5">
+          <div className={cn("mx-auto mt-12 grid max-w-[1800px] xl:grid-cols-5", UI.gridGap)}>
             {architecture.map((lane, index) => (
               <Lane key={lane.lane} lane={lane} index={index} activeKey={activeKey} setActiveKey={setActiveKey} mode={view} />
             ))}
@@ -901,30 +913,30 @@ export default function KeenStackAgentFlowchart() {
           <DetailDrawer selected={selected} mode={view} />
         </section>
 
-        <section className="px-6 py-20" style={{ background: "rgba(255,255,255,0.54)" }}>
+        <section className={cn(UI.pageGutter, UI.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
           <SectionTitle
             eyebrow="Provider strategy"
             title="Bedrock Spoke does not remove the need for architecture"
             subtitle="Bedrock Spoke is a ServiceNow-native provider option. It should sit behind an LLM Provider Router so we do not hardcode ourselves into one path."
           />
 
-          <div className="mx-auto mt-12 grid max-w-7xl gap-5 md:grid-cols-3">
+          <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-3", UI.gridGap)}>
             {providerOptions.map((option) => {
               const Icon = option.icon || BrainCircuit;
               return (
-                <Card key={option.name} className="rounded-[28px] bg-white/90">
-                  <div className="p-6">
+                <Card key={option.name} className={cn("bg-white/90", UI.cardRadius)}>
+                  <div className={UI.cardPad}>
                     <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
                       <Icon className="h-6 w-6" />
                     </div>
                     <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{option.name}</h3>
-                    <div className="mt-5 rounded-[18px] p-4 text-sm leading-6 text-[#2B3D65]" style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
+                    <div className={cn("mt-5 rounded-[18px] text-sm leading-6 text-[#2B3D65]", UI.compactPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
                       <strong>Best for:</strong> {option.bestFor}
                     </div>
-                    <div className="mt-3 rounded-[18px] p-4 text-sm leading-6 text-[#2B3D65]" style={{ background: "#FFF7E6", border: "1px solid #F1D99A" }}>
+                    <div className={cn("mt-3 rounded-[18px] text-sm leading-6 text-[#2B3D65]", UI.compactPad)} style={{ background: "#FFF7E6", border: "1px solid #F1D99A" }}>
                       <strong>Risk:</strong> {option.risk}
                     </div>
-                    <div className="mt-3 rounded-[18px] p-4 text-sm font-semibold leading-6 text-white" style={{ background: KS.phantom }}>
+                    <div className={cn("mt-3 rounded-[18px] text-sm font-semibold leading-6 text-white", UI.compactPad)} style={{ background: KS.phantom }}>
                       {option.pattern}
                     </div>
                   </div>
@@ -934,21 +946,21 @@ export default function KeenStackAgentFlowchart() {
           </div>
         </section>
 
-        <section className="px-6 py-20">
+        <section className={cn(UI.pageGutter, UI.sectionY)}>
           <SectionTitle
             eyebrow="Timeout design"
             title="How to avoid webhook timeout with Bedrock or external API"
             subtitle="The provider does not solve timeout by itself. The async conversation pattern solves it."
           />
 
-          <div className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-2">
+          <div className={cn("mx-auto mt-12 grid max-w-6xl md:grid-cols-2", UI.gridGap)}>
             {timeoutPatterns.map((pattern) => (
               <MiniFlow key={pattern.title} pattern={pattern} />
             ))}
           </div>
         </section>
 
-        <section className="px-6 py-20" style={{ background: "rgba(255,255,255,0.56)" }}>
+        <section className={cn(UI.pageGutter, UI.sectionY)} style={{ background: "rgba(255,255,255,0.56)" }}>
           <SectionTitle
             eyebrow="Smoke tests"
             title="Basic checks for this flowchart"
@@ -961,7 +973,7 @@ export default function KeenStackAgentFlowchart() {
           </div>
         </section>
 
-        <section className="px-6 py-20 text-white" style={{ background: KS.phantom }}>
+        <section className={cn("text-white", UI.pageGutter, UI.sectionY)} style={{ background: KS.phantom }}>
           <SectionTitle dark eyebrow="Migration path" title="Build sequence" subtitle="This is the practical order. Do not jump straight into multi-agent until the core is stable." />
 
           <div className="mx-auto mt-12 max-w-6xl">
@@ -972,7 +984,7 @@ export default function KeenStackAgentFlowchart() {
                   <div className="z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] text-[#112245] shadow-lg" style={{ background: KS.keenGreen }}>
                     <span className="font-bold">{index + 1}</span>
                   </div>
-                  <div className="flex-1 rounded-[28px] border border-white/10 bg-white/8 p-6 shadow-xl shadow-black/20">
+                  <div className={cn("flex-1 border border-white/10 bg-white/8 shadow-xl shadow-black/20", UI.cardRadius, UI.cardPad)}>
                     <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenLight }}>
                       {phase.phase}
                     </div>
@@ -991,11 +1003,11 @@ export default function KeenStackAgentFlowchart() {
           </div>
         </section>
 
-        <section className="px-6 py-20">
+        <section className={cn(UI.pageGutter, UI.sectionY)}>
           <SectionTitle eyebrow="Final v2 shape" title="The architecture sentence" subtitle="This is the simplest way to explain the next stage without overcomplicating it." />
-          <Card className="mx-auto mt-10 max-w-5xl rounded-[32px] bg-white/90">
-            <div className="p-8">
-              <div className="rounded-[24px] p-6 text-xl font-semibold leading-9 text-white md:text-2xl" style={{ background: KS.phantom }}>
+          <Card className={cn("mx-auto mt-10 max-w-5xl bg-white/90", UI.cardRadius)}>
+            <div className={UI.cardPadLoose}>
+              <div className={cn("text-xl font-semibold leading-9 text-white md:text-2xl", UI.panelRadius, UI.cardPad)} style={{ background: KS.phantom }}>
                 KeenStack AI Agent v2 should keep ServiceNow as the execution plane, add an LLM Provider Router for LLMClient / Bedrock Spoke / external gateway, and evolve into a supervisor-led multi-agent system where specialist agents handle ITSM, CMDB, Knowledge, Developer Operator, App Context, and Planning workflows.
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -1004,7 +1016,7 @@ export default function KeenStackAgentFlowchart() {
                   [Cloud, "Bedrock as provider", "Use Bedrock Spoke behind provider router, not hardcoded in worker logic."],
                   [Network, "Multi-agent next", "Supervisor delegates to scoped specialists so each agent has fewer ways to fail."],
                 ].map(([Icon, title, text]) => (
-                  <div key={title} className="rounded-[24px] p-5" style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
+                  <div key={title} className={cn(UI.panelRadius, UI.panelPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
                     <Icon className="mb-3 h-6 w-6" style={{ color: KS.greenDark }} />
                     <h3 className="font-bold text-[#112245]">{title}</h3>
                     <p className="mt-2 text-sm leading-6 text-[#5B6A8A]">{text}</p>
