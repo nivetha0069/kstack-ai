@@ -1066,7 +1066,7 @@ function ScenarioFlowcharts({ setModal }) {
             <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.codeBlue }}>Open expanded flow</div>
           </div>
 
-          <motion.div className="grid gap-4 md:grid-cols-4" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
+          <motion.div key={activeScenario} className="grid gap-4 md:grid-cols-4" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
             {scenario.steps.map(([title, text], index) => (
               <motion.div key={`${title}-${index}`} className="relative" variants={fadeUp}>
                 <motion.div
