@@ -31,6 +31,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+import keenStackLogo from "./assets/keenstack_ai_logo.svg";
 
 /*
   KeenStack Agent V2 Architecture Story
@@ -1224,8 +1225,8 @@ export default function KeenStackAgentFlowchart() {
       <motion.header initial={{ y: -24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }} className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ background: "rgba(255,255,255,0.78)", borderColor: "rgba(217,222,226,0.8)" }}>
         <div className={cn("mx-auto flex max-w-7xl flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between", LAYOUT.pageGutter)}>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white shadow-lg" style={{ background: KS.phantom }}>
-              <Bot className="h-6 w-6" />
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[16px] shadow-lg" style={{ background: KS.phantom }}>
+              <img src={keenStackLogo} alt="KeenStack AI" className="h-12 w-12 object-cover" />
             </div>
             <div>
               <div className="text-sm font-bold uppercase tracking-[0.24em] text-[#112245]">KeenStack AI Agent</div>
