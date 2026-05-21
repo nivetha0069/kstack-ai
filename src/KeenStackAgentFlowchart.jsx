@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertTriangle,
-  ArrowDown,
   ArrowRight,
   Bot,
   BrainCircuit,
@@ -452,27 +450,6 @@ const providerOptions = [
     bestFor: "Advanced model routing, retries, streaming, multi-agent orchestration, cross-channel use.",
     risk: "More infrastructure and auth surface. Needs job_id/status pattern to avoid webhook timeout.",
     pattern: "Worker -> Gateway job_id -> Bedrock/Claude/OpenAI -> status/callback -> ServiceNow executes tools",
-  },
-];
-
-const timeoutPatterns = [
-  {
-    id: "t-1",
-    title: "Bad synchronous pattern",
-    icon: AlertTriangle,
-    tone: "bad",
-    summary: "Blocking model calls can recreate webhook timeout.",
-    flow: ["Portal Send", "Worker waits", "External API waits", "Bedrock waits", "Response may time out"],
-    note: "This recreates the webhook timeout problem. Avoid for long LLM calls.",
-  },
-  {
-    id: "t-2",
-    title: "Safe async pattern",
-    icon: CheckCircle2,
-    tone: "good",
-    summary: "Conversation/job status polling keeps the portal responsive.",
-    flow: ["Create conversation", "Start async job", "Return job_id/status", "Poll conversation/status", "Render final answer"],
-    note: "This works with LLMClient, Bedrock Spoke, or external API.",
   },
 ];
 
@@ -1016,42 +993,6 @@ function ProviderCards({ setModal }) {
   );
 }
 
-function TimeoutCards({ setModal }) {
-  return (
-    <div className={cn("mx-auto mt-12 grid max-w-6xl md:grid-cols-2", LAYOUT.gridGap)}>
-      {timeoutPatterns.map((pattern) => {
-        const Icon = pattern.icon || CheckCircle2;
-        const isGood = pattern.tone === "good";
-        return (
-          <Card
-            key={pattern.id}
-            className={LAYOUT.cardRadius}
-            style={{ background: isGood ? "#EAF9F4" : "#FFF0EF", borderColor: isGood ? "#BFEBDD" : "#F0C9C6" }}
-            onClick={() => setModal({
-              title: pattern.title,
-              icon: pattern.icon,
-              eyebrow: "Timeout design",
-              body: pattern.note,
-              flow: pattern.flow.map((step) => [step, step === "Start async job" || step === "Return job_id/status" || step === "Poll conversation/status" ? "Keeps long-running work outside the original request." : "Runtime step in the request lifecycle."]),
-            })}
-          >
-            <div className={LAYOUT.cardPad}>
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: isGood ? KS.greenDark : KS.danger }}>
-                  <Icon className="h-6 w-6" />
-                </div>
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{pattern.title}</h3>
-              </div>
-              <p className="text-sm font-semibold leading-6 text-[#2B3D65]">{pattern.summary}</p>
-              <div className="mt-5 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: isGood ? KS.greenDark : KS.danger }}>Open flow</div>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
 function KillSwitchMatrix({ setModal }) {
   return (
     <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-2 xl:grid-cols-4", LAYOUT.gridGap)}>
@@ -1333,11 +1274,6 @@ export default function KeenStackAgentFlowchart() {
         <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
           <SectionTitle eyebrow="Provider strategy" title="Provider paths behind one router" subtitle="Bedrock Spoke is a ServiceNow-native provider option. The provider path should sit behind an LLM Provider Router to avoid hardcoding." />
           <ProviderCards setModal={setModal} />
-        </section>
-
-        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
-          <SectionTitle eyebrow="Timeout design" title="Webhook-safe async patterns" subtitle="The provider does not solve timeout by itself. The async conversation pattern solves it." />
-          <TimeoutCards setModal={setModal} />
         </section>
 
         <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
