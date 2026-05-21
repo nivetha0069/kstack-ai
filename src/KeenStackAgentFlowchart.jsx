@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowDown,
@@ -29,16 +29,20 @@ import {
   Sparkles,
   Workflow,
   Wrench,
+  X,
 } from "lucide-react";
 
 /*
-  KeenStack Agent V2 Architecture Flowchart
+  KeenStack Agent V2 Architecture Story
   -------------------------------------------------------
   Self-contained React artifact using a KeenStack-inspired
   design system: Phantom navy, Polar canvas, Keen Green,
   Code Blue, soft cards, Sora-like headings, Open-Sans-like body.
 
-  No shadcn imports. No external images. All UI components live here.
+  Interaction model:
+  - Every architecture feature opens in a modal popup.
+  - No selected-node details are rendered below the flowchart.
+  - Copy avoids first-person framing.
 */
 
 const KS = {
@@ -61,71 +65,62 @@ const KS = {
 };
 
 const laneThemes = {
-  channel: {
-    tint: "#EAF7FF",
-    border: "#C9E7F7",
-    accent: KS.codeBlue,
-    chip: "Channels",
-  },
-  servicenow: {
-    tint: "#EAF9F4",
-    border: "#BFEBDD",
-    accent: KS.keenGreen,
-    chip: "ServiceNow",
-  },
-  ai: {
-    tint: "#F1F0FF",
-    border: "#D7D2FF",
-    accent: "#5B4BDB",
-    chip: "Reasoning",
-  },
-  tool: {
-    tint: "#FFF7E6",
-    border: "#F1D99A",
-    accent: KS.warning,
-    chip: "Execution",
-  },
-  data: {
-    tint: "#F7F9FC",
-    border: KS.slate,
-    accent: KS.phantom60,
-    chip: "Evidence",
-  },
-  provider: {
-    tint: "#EDF4FF",
-    border: "#C7D9FF",
-    accent: KS.codeBlue,
-    chip: "Providers",
-  },
-  reliability: {
-    tint: "#FFF0EF",
-    border: "#F0C9C6",
-    accent: KS.danger,
-    chip: "Reliability",
-  },
+  channel: { tint: "#EAF7FF", border: "#C9E7F7", accent: KS.codeBlue, chip: "Channels" },
+  servicenow: { tint: "#EAF9F4", border: "#BFEBDD", accent: KS.keenGreen, chip: "ServiceNow" },
+  ai: { tint: "#F1F0FF", border: "#D7D2FF", accent: "#5B4BDB", chip: "Reasoning" },
+  tool: { tint: "#FFF7E6", border: "#F1D99A", accent: KS.warning, chip: "Execution" },
+  data: { tint: "#F7F9FC", border: KS.slate, accent: KS.phantom60, chip: "Evidence" },
+  provider: { tint: "#EDF4FF", border: "#C7D9FF", accent: KS.codeBlue, chip: "Providers" },
+  reliability: { tint: "#FFF0EF", border: "#F0C9C6", accent: KS.danger, chip: "Reliability" },
 };
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 22 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.075, delayChildren: 0.08 } },
+};
+
+function AnimatedRail({ dark = false }) {
+  return (
+    <div className="mx-auto mt-8 flex max-w-xl items-center justify-center gap-3">
+      {[0, 1, 2, 3, 4].map((item) => (
+        <motion.div
+          key={item}
+          className="h-1.5 rounded-full"
+          style={{ background: dark ? "rgba(32,201,160,0.78)" : KS.keenGreen }}
+          animate={{ width: [10, 42, 10], opacity: [0.25, 1, 0.25] }}
+          transition={{ duration: 2.2, repeat: Infinity, delay: item * 0.16, ease: "easeInOut" }}
+        />
+      ))}
+    </div>
+  );
+}
 
 const currentArchitecture = [
   {
-    lane: "User / UI Channels",
+    lane: "User Channels",
     color: "channel",
     icon: MessageSquareText,
     nodes: [
       {
         id: "c-1-1",
-        title: "Service Portal Chat UI",
+        title: "Service Portal Chat",
         icon: Bot,
-        body: "Main user surface with chat, history panel, dark mode, Planning Mode toggle, raw tool calls, file/CSV upload and download links.",
-        proof: "This is what made the app feel like a product instead of only a background script demo.",
-        devNote: "Inspect the Service Portal widget client script, server script, template, and CSS. Keep the UI as a renderer/controller, not the place where ServiceNow records are mutated.",
+        body: "Main user surface with chat, history panel, dark mode, Planning Mode toggle, raw tool calls, file/CSV upload, and download links.",
+        proof: "Converts backend automation into a product-like ServiceNow experience instead of a background-script demo.",
+        devNote: "Inspect the Service Portal widget client script, server script, template, and CSS. Keep the portal widget as the renderer/controller, not the place where ServiceNow records are mutated.",
       },
       {
         id: "c-1-2",
-        title: "Planning Mode UI",
+        title: "Planning Mode",
         icon: ClipboardCheck,
-        body: "Shows a step-by-step plan before executing multi-step operations like dependency analysis → incident creation → CSV export → work note.",
+        body: "Shows a step-by-step plan before executing multi-step operations like dependency analysis -> incident creation -> CSV export -> work note.",
         proof: "Best controlled automation story: plan first, execute only after approval.",
-        devNote: "The UI should submit mode=planning or execute_plan with a stable workflow identifier. Do not rely only on free-text approval matching.",
+        devNote: "The portal should submit mode=planning or execute_plan with a stable workflow identifier. Avoid relying only on free-text approval matching.",
       },
       {
         id: "c-1-3",
@@ -133,7 +128,7 @@ const currentArchitecture = [
         icon: Code2,
         body: "Users can ask app/backend questions: architecture, tables, flows, business rules, debugging paths, and where to change code.",
         proof: "Evolved into Developer Operator and 792 export-backed app intelligence.",
-        devNote: "Developer intent must route before generic list/search shortcuts. Otherwise architecture prompts get hijacked by list_appeals or ci_search.",
+        devNote: "Developer intent must route before generic list/search shortcuts. Otherwise architecture prompts can be hijacked by list_appeals or ci_search.",
       },
     ],
   },
@@ -147,24 +142,24 @@ const currentArchitecture = [
         title: "ChatAgentAjax",
         icon: Cable,
         body: "Ajax bridge between portal and backend. Submits prompt/session/mode and receives conversation_id or response status.",
-        proof: "Keeps browser thin and moves real execution into ServiceNow backend.",
+        proof: "Keeps browser code thin and moves real execution into the ServiceNow backend.",
         devNote: "Contract: input message/session/source/planning flag; output conversation_id/status/error. Avoid returning empty or inconsistent JSON.",
       },
       {
         id: "c-2-2",
         title: "Conversation Table",
         icon: Database,
-        body: "Stores message, session, source, status, final answer, raw tool calls, errors, attachments, timing and history.",
-        proof: "This is the durable async state machine: queued → processing → complete/error.",
+        body: "Stores message, session, source, status, final answer, raw tool calls, errors, attachments, timing, and history.",
+        proof: "Durable async state machine: queued -> processing -> complete/error.",
         devNote: "This table is the source of truth for portal polling. Debug stuck responses by checking status, error, toolCalls, response fields, and sys_updated_on.",
       },
       {
         id: "c-2-3",
         title: "ChatAgentAjaxWorker",
         icon: Workflow,
-        body: "Runtime traffic controller. Handles fast paths, Planning Mode, Developer Operator route, LLM calls, tool execution and response persistence.",
-        proof: "Most important script to stabilize because route order decides what gets called.",
-        devNote: "Read this first. It owns route order, fast paths, worker completion, LLM call delegation, and the response shape the portal expects.",
+        body: "Runtime traffic controller. Handles fast paths, Planning Mode, Developer Operator route, LLM calls, tool execution, and response persistence.",
+        proof: "Most important script to stabilize because route order decides which capability gets called.",
+        devNote: "Read this first. It owns route order, fast paths, worker completion, LLM call delegation, and the response shape expected by the portal.",
       },
     ],
   },
@@ -177,15 +172,15 @@ const currentArchitecture = [
         id: "c-3-1",
         title: "NowLLMOrchestrator",
         icon: BrainCircuit,
-        body: "Builds prompt, includes tool descriptions, uses ReAct-style Action / Action Input / Final Answer parsing.",
-        proof: "LLM decides or explains, but does not directly write records.",
+        body: "Builds prompts, includes tool descriptions, and uses ReAct-style Action / Action Input / Final Answer parsing.",
+        proof: "The LLM decides or explains, but does not directly write records.",
         devNote: "Log raw model output before parsing. If Action and Final Answer both appear, prefer a valid Action when a tool call is clearly intended.",
       },
       {
         id: "c-3-2",
         title: "GuardPolicyEvaluator",
         icon: ShieldCheck,
-        body: "Checks if a tool/action is allowed, risky, duplicate, or blocked before execution.",
+        body: "Checks whether a tool/action is allowed, risky, duplicate, or blocked before execution.",
         proof: "Prevents repeated record creation and unsafe write actions.",
         devNote: "Every write-capable tool should pass governance. Block messages should include tool, risk, and clear reason.",
       },
@@ -194,7 +189,7 @@ const currentArchitecture = [
         title: "Duplicate Call Prevention",
         icon: Lock,
         body: "Stops repeated unsafe tool calls with the same normalized input, especially around create/update actions.",
-        proof: "Useful, but must not block harmless navigation or architecture explanations.",
+        proof: "Useful for safety, but should not block harmless navigation or architecture explanations.",
         devNote: "Use operation-aware duplicate keys. Do not block read-only tools purely because the same tool name is repeated.",
       },
     ],
@@ -208,7 +203,7 @@ const currentArchitecture = [
         id: "c-4-1",
         title: "ToolRouter",
         icon: Route,
-        body: "Looks up tool registry row, resolves handler Script Include and method, invokes handler with JSON params.",
+        body: "Looks up tool registry row, resolves handler Script Include and method, and invokes the handler with JSON params.",
         proof: "Turns LLM tool calls into deterministic backend function calls.",
         devNote: "Undefined is not a function usually means registry method and Script Include prototype method do not match, or scope access failed.",
       },
@@ -216,7 +211,7 @@ const currentArchitecture = [
         id: "c-4-2",
         title: "ITSM Tools",
         icon: ClipboardCheck,
-        body: "Incident search/create/update, impact/urgency/priority updates, work notes, assignment/change context.",
+        body: "Incident search/create/update, impact/urgency/priority updates, work notes, assignment, and change context.",
         proof: "Shows the agent can operate on ServiceNow records, not just chat.",
         devNote: "Normalize create vs update intent. Missing incident number should block update but not create.",
       },
@@ -224,9 +219,9 @@ const currentArchitecture = [
         id: "c-4-3",
         title: "CMDB Tools",
         icon: GitBranch,
-        body: "CI search, dependency traversal, upstream/downstream impact analysis, CSV export, affected CI context.",
-        proof: "Payment Gateway dependency analysis is one of the strongest demos.",
-        devNote: "Always log selected CI sys_id/name/class, relationship direction, depth, row count, and export row count. UI summary and CSV must use the same result set.",
+        body: "CI search, dependency traversal, upstream/downstream impact analysis, CSV export, and affected CI context.",
+        proof: "Payment Gateway dependency analysis is one of the strongest operational demos.",
+        devNote: "Always log selected CI sys_id/name/class, relationship direction, depth, row count, and export row count. Portal summary and CSV must use the same result set.",
       },
       {
         id: "c-4-4",
@@ -234,7 +229,7 @@ const currentArchitecture = [
         icon: Search,
         body: "Knowledge article search, troubleshooting guidance, and ServiceNow module navigation links/steps.",
         proof: "Safe, useful, operator-friendly demo path.",
-        devNote: "Search/navigation is safer live than create. Creation paths should be guarded for duplicate KB drafts.",
+        devNote: "Search/navigation is safer live than creation. Creation paths should be guarded for duplicate KB drafts.",
       },
     ],
   },
@@ -255,15 +250,15 @@ const currentArchitecture = [
         id: "c-5-2",
         title: "792 Export Context",
         icon: FileText,
-        body: "Chunked metadata from real 792 app export: x_kest_ai_powere_1_appeal, x_kest_referral_fa_referrals, fields, flows, BRs, UI actions, REST endpoints.",
-        proof: "Solves wrong-source problem where the agent explained ven08793 bridge handlers instead of the real Appeals app.",
+        body: "Chunked metadata from real 792 app export: x_kest_ai_powere_1_appeal, x_kest_referral_fa_referrals, fields, flows, BRs, record actions, REST endpoints.",
+        proof: "Solves wrong-source behavior where the agent explained ven08793 bridge handlers instead of the real Appeals app.",
         devNote: "Use flow-first compact mode for long app walkthroughs so flows and BRs appear before field dumps.",
       },
       {
         id: "c-5-3",
         title: "Evidence Outputs",
         icon: CheckCircle2,
-        body: "Incident links, CSV downloads, raw tool calls, attachment references, route names, timing logs, final markdown answers.",
+        body: "Incident links, CSV downloads, raw tool calls, attachment references, route names, timing logs, and final markdown answers.",
         proof: "Makes answers inspectable and demo-safe.",
         devNote: "A demo answer should include proof: route, tool calls, record links, attachment links, and clear known limitations.",
       },
@@ -281,7 +276,7 @@ const nextArchitecture = [
         id: "n-1-1",
         title: "Service Portal",
         icon: Bot,
-        body: "Primary ServiceNow-native UI continues to use conversation row + async polling.",
+        body: "Primary ServiceNow-native portal experience continues to use conversation row + async polling.",
         outcome: "No webhook-style blocking from the browser.",
         devNote: "Keep the portal as the consistent UX shell across providers. The provider should not change the portal contract.",
       },
@@ -298,7 +293,7 @@ const nextArchitecture = [
         title: "Standalone Web App / API Clients",
         icon: Globe2,
         body: "Future external channels call a stable API contract instead of duplicating logic.",
-        outcome: "One agent backend, many frontends.",
+        outcome: "One agent backend, many channels.",
         devNote: "Expose a stable channel contract: submit message, receive conversation/job id, poll status, render final answer/evidence.",
       },
     ],
@@ -314,7 +309,7 @@ const nextArchitecture = [
         icon: Workflow,
         body: "ServiceNow creates conversation, enqueues work, polls status, and renders final response.",
         outcome: "Avoids timeout whether using LLMClient, Bedrock Spoke, or external gateway.",
-        devNote: "This is the timeout fix. Do not wait synchronously for long model calls inside the UI request.",
+        devNote: "This is the timeout fix. Avoid waiting synchronously for long model calls inside the original request.",
       },
       {
         id: "n-2-2",
@@ -322,13 +317,13 @@ const nextArchitecture = [
         icon: Route,
         body: "New abstraction inside ServiceNow: servicenow_llmclient | bedrock_spoke | external_gateway.",
         outcome: "Provider can change without rewriting every worker route.",
-        devNote: "Create one provider interface: call(prompt, model, options) → normalized response. Route provider by property/config.",
+        devNote: "Create one provider interface: call(prompt, model, options) -> normalized response. Route provider by property/config.",
       },
       {
         id: "n-2-3",
         title: "Tool Execution Stays Local",
         icon: Wrench,
-        body: "ToolRouter, GuardPolicyEvaluator, record updates, attachments, CSV export and audit remain in ServiceNow.",
+        body: "ToolRouter, GuardPolicyEvaluator, record updates, attachments, CSV export, and audit remain in ServiceNow.",
         outcome: "ServiceNow remains system of record and action layer.",
         devNote: "External model/gateway can decide, but ServiceNow should execute writes because ACLs, records, and audit live there.",
       },
@@ -391,7 +386,7 @@ const nextArchitecture = [
         title: "Planning Coordinator",
         icon: ClipboardCheck,
         body: "Maps multi-step requests to approved composite workflow IDs, not freehand action chains.",
-        outcome: "Stable plan → approve → execute path.",
+        outcome: "Stable plan -> approve -> execute path.",
         devNote: "Composite workflows should be config/table-driven, not string-matched from natural language only.",
       },
     ],
@@ -413,9 +408,9 @@ const nextArchitecture = [
         id: "n-5-2",
         title: "Telemetry Contract",
         icon: Gauge,
-        body: "Log route, agent, provider, model, tool, handler, guard result, latency, tokens, status and errors.",
+        body: "Log route, agent, provider, model, tool, handler, guard result, latency, tokens, status, and errors.",
         outcome: "Every failure becomes diagnosable.",
-        devNote: "This is how you stop guessing. Each response should reveal route selected, tool selected, provider used, and failure point.",
+        devNote: "Each response should reveal route selected, tool selected, provider used, and failure point.",
       },
       {
         id: "n-5-3",
@@ -423,7 +418,7 @@ const nextArchitecture = [
         icon: Layers3,
         body: "All handlers return success, answer, data, links, attachments, toolCalls, error, telemetry.",
         outcome: "Portal rendering becomes predictable and stable.",
-        devNote: "This prevents blank UI responses caused by handler-specific return shapes.",
+        devNote: "This prevents blank portal responses caused by handler-specific return shapes.",
       },
     ],
   },
@@ -431,99 +426,271 @@ const nextArchitecture = [
 
 const providerOptions = [
   {
+    id: "p-1",
     name: "Current: ServiceNow LLMClient",
     icon: BrainCircuit,
-    bestFor: "Keep today’s successful demo path working.",
+    summary: "Stable provider path for the current successful demo behavior.",
+    bestFor: "Keep the successful demo path working.",
     risk: "Less provider abstraction. Model behavior tied to instance configuration.",
-    pattern: "Worker → LLMClient → ToolRouter",
+    pattern: "Worker -> LLMClient -> ToolRouter",
   },
   {
+    id: "p-2",
     name: "Next: Amazon Bedrock Spoke",
     icon: Cloud,
+    summary: "ServiceNow-native enterprise Bedrock path through IntegrationHub/Flow Designer.",
     bestFor: "ServiceNow-native enterprise Bedrock path using IntegrationHub/Flow Designer.",
     risk: "Still needs async worker/polling. Spoke does not automatically solve long wait time.",
-    pattern: "Worker → Flow/Spoke → Bedrock → Worker updates conversation",
+    pattern: "Worker -> Flow/Spoke -> Bedrock -> Worker updates conversation",
   },
   {
+    id: "p-3",
     name: "Future: External AI Gateway",
     icon: Cable,
+    summary: "Advanced routing, async jobs, retries, streaming, and multi-agent orchestration.",
     bestFor: "Advanced model routing, retries, streaming, multi-agent orchestration, cross-channel use.",
-    risk: "More infra and auth surface. Needs job_id/status pattern to avoid webhook timeout.",
-    pattern: "Worker → Gateway job_id → Bedrock/Claude/OpenAI → status/callback → ServiceNow executes tools",
+    risk: "More infrastructure and auth surface. Needs job_id/status pattern to avoid webhook timeout.",
+    pattern: "Worker -> Gateway job_id -> Bedrock/Claude/OpenAI -> status/callback -> ServiceNow executes tools",
   },
 ];
 
 const timeoutPatterns = [
   {
+    id: "t-1",
     title: "Bad synchronous pattern",
     icon: AlertTriangle,
     tone: "bad",
-    flow: ["Portal Send", "Worker waits", "External API waits", "Bedrock waits", "Response maybe times out"],
+    summary: "Blocking model calls can recreate webhook timeout.",
+    flow: ["Portal Send", "Worker waits", "External API waits", "Bedrock waits", "Response may time out"],
     note: "This recreates the webhook timeout problem. Avoid for long LLM calls.",
   },
   {
+    id: "t-2",
     title: "Safe async pattern",
     icon: CheckCircle2,
     tone: "good",
+    summary: "Conversation/job status polling keeps the portal responsive.",
     flow: ["Create conversation", "Start async job", "Return job_id/status", "Poll conversation/status", "Render final answer"],
     note: "This works with LLMClient, Bedrock Spoke, or external API.",
   },
 ];
 
+const killSwitches = [
+  {
+    id: "k-1",
+    title: "Global Agent Kill Switch",
+    scope: "Whole agent runtime",
+    trigger: "Major incident, bad model behavior, repeated unsafe tool attempts, demo emergency.",
+    action: "Disable LLM execution and return a controlled maintenance message while keeping the portal online.",
+    property: "x_kest_ai_agent_v2.agent.enabled = false",
+    owner: "Platform admin / product owner",
+    icon: ShieldCheck,
+  },
+  {
+    id: "k-2",
+    title: "Write-Action Kill Switch",
+    scope: "Create/update/close/attach operations",
+    trigger: "Duplicate incidents, wrong record updates, governance uncertainty, production risk.",
+    action: "Allow read-only search/explain/navigation, but block write tools through GuardPolicyEvaluator.",
+    property: "x_kest_ai_agent_v2.tools.write_enabled = false",
+    owner: "ServiceNow admin",
+    icon: Lock,
+  },
+  {
+    id: "k-3",
+    title: "Provider Kill Switch",
+    scope: "LLM provider path",
+    trigger: "Bedrock outage, LLMClient failure, external gateway latency, token/cost spike.",
+    action: "Route to fallback provider or return async degraded-mode response.",
+    property: "x_kest_ai_agent_v2.llm.provider.active = llmclient | bedrock_spoke | external_gateway | disabled",
+    owner: "AI platform owner",
+    icon: Route,
+  },
+  {
+    id: "k-4",
+    title: "External Gateway Kill Switch",
+    scope: "External API only",
+    trigger: "Gateway timeout, auth issue, callback failure, queue backlog.",
+    action: "Stop external calls and fall back to ServiceNow-native provider path.",
+    property: "x_kest_ai_agent_v2.external_gateway.enabled = false",
+    owner: "Integration owner",
+    icon: Cable,
+  },
+  {
+    id: "k-5",
+    title: "Planning Execution Kill Switch",
+    scope: "Approved composite workflows",
+    trigger: "Plan maps incorrectly, composite workflow behaves unexpectedly, CSV/incident chaining issue.",
+    action: "Keep planning explanations enabled but block Execute buttons/actions.",
+    property: "x_kest_ai_agent_v2.planning.execute_enabled = false",
+    owner: "Workflow owner",
+    icon: ClipboardCheck,
+  },
+  {
+    id: "k-6",
+    title: "Tool-Level Kill Switch",
+    scope: "Individual tool registry row",
+    trigger: "One handler is broken, one table has ACL issue, one API response shape is unstable.",
+    action: "Deactivate only the failing tool while keeping the rest of the agent alive.",
+    property: "x_kest_ai_agent_v2_tool_registry.active = false for selected tool",
+    owner: "Tool owner",
+    icon: Wrench,
+  },
+  {
+    id: "k-7",
+    title: "Specialist Agent Kill Switch",
+    scope: "One specialist agent",
+    trigger: "Wrong delegation, specialist hallucination, bad prompt version, narrow tool failure.",
+    action: "Disable one specialist and route its intents to fallback general/developer safe mode.",
+    property: "x_kest_ai_agent_v2.agent.<specialist>.enabled = false",
+    owner: "Agent owner",
+    icon: Network,
+  },
+  {
+    id: "k-8",
+    title: "Context Source Kill Switch",
+    scope: "Developer/app intelligence context",
+    trigger: "Wrong source context, stale app export, app metadata mismatch.",
+    action: "Disable affected context pack and return context-unavailable instead of guessing.",
+    property: "x_kest_ai_agent_v2.context.<pack>.enabled = false",
+    owner: "App context owner",
+    icon: FileText,
+  },
+];
+
+const scenarioFlowcharts = [
+  {
+    id: "s-1",
+    title: "Current normal tool execution",
+    subtitle: "How the ServiceNow-native agent answers or acts.",
+    steps: [
+      ["User prompt", "Portal captures message + mode"],
+      ["ChatAgentAjax", "Creates conversation / returns status"],
+      ["Worker", "Selects fast path or LLM path"],
+      ["Orchestrator", "Returns Final Answer or Action JSON"],
+      ["Guard", "Allows, blocks, or flags risk"],
+      ["ToolRouter", "Runs handler method"],
+      ["Evidence", "Writes record links, CSV, tool calls"],
+      ["Portal", "Renders final answer"],
+    ],
+  },
+  {
+    id: "s-2",
+    title: "Next-stage Bedrock Spoke flow",
+    subtitle: "ServiceNow-native Bedrock without reintroducing webhook timeout.",
+    steps: [
+      ["User prompt", "Portal sends message"],
+      ["Conversation row", "Status = queued"],
+      ["Async worker", "Calls LLM Provider Router"],
+      ["Provider Router", "Selects bedrock_spoke"],
+      ["Flow / Spoke", "Calls Amazon Bedrock"],
+      ["Worker resumes", "Normalizes LLM response"],
+      ["Guard + tools", "ServiceNow executes locally"],
+      ["Portal polling", "Shows complete response"],
+    ],
+  },
+  {
+    id: "s-3",
+    title: "External gateway async flow",
+    subtitle: "Safe long-running pattern if an external API is added later.",
+    steps: [
+      ["ServiceNow worker", "POST /agent/respond"],
+      ["Gateway", "Returns 202 + job_id fast"],
+      ["Gateway queue", "Runs provider/model call async"],
+      ["Bedrock / Claude / OpenAI", "Generates decision or answer"],
+      ["Status endpoint", "ServiceNow polls job result"],
+      ["Tool decision", "Gateway returns tool calls only"],
+      ["ServiceNow ToolRouter", "Executes records locally"],
+      ["Conversation row", "Persists answer/evidence"],
+    ],
+  },
+  {
+    id: "s-4",
+    title: "Multi-agent supervisor flow",
+    subtitle: "How v2 avoids one overloaded general-purpose agent.",
+    steps: [
+      ["User intent", "Natural language request"],
+      ["Supervisor", "Classifies domain + risk"],
+      ["Specialist", "ITSM / CMDB / KB / Developer / App Context"],
+      ["Allowed tools", "Small scoped tool set"],
+      ["Plan or answer", "Specialist proposes action"],
+      ["Guard", "Approves or blocks"],
+      ["ServiceNow execution", "Local record work"],
+      ["Shared evidence", "Returned to supervisor/user"],
+    ],
+  },
+  {
+    id: "s-5",
+    title: "Kill-switch safety flow",
+    subtitle: "How the system degrades safely instead of failing dangerously.",
+    steps: [
+      ["Request enters", "Portal / Teams / API"],
+      ["Runtime checks", "Global + provider + tool switches"],
+      ["If disabled", "Return safe maintenance message"],
+      ["If read-only", "Block writes, allow explain/search"],
+      ["If provider down", "Use fallback provider"],
+      ["If tool down", "Disable only that handler"],
+      ["Telemetry", "Log switch reason"],
+      ["Admin action", "Fix and re-enable"],
+    ],
+  },
+];
+
 const migrationPhases = [
   {
+    id: "m-1",
     phase: "Phase 1",
     title: "Stabilize current agent",
+    summary: "Reliability-first cleanup before adding provider complexity.",
     items: ["Clean stale route blocks", "Normalize handler responses", "Add regression runner", "Lock demo-safe queries", "Improve duplicate prevention"],
   },
   {
+    id: "m-2",
     phase: "Phase 2",
     title: "Add LLM Provider Router",
+    summary: "Create a provider abstraction so Bedrock and external API paths do not require rewriting worker logic.",
     items: ["Create provider interface", "Keep LLMClient as default", "Add Bedrock Spoke provider", "Add external gateway provider stub", "Log provider/model telemetry"],
   },
   {
+    id: "m-3",
     phase: "Phase 3",
     title: "Bedrock Spoke integration",
+    summary: "Add ServiceNow-native Bedrock without blocking portal requests.",
     items: ["Use Flow/IntegrationHub action", "Keep async conversation pattern", "Add fallback provider", "Track latency and failure reasons"],
   },
   {
+    id: "m-4",
     phase: "Phase 4",
     title: "Multi-agent routing",
+    summary: "Split the overloaded assistant into supervisor-routed specialists.",
     items: ["Supervisor Agent", "Specialist agents", "Approved composite workflow registry", "Planning Coordinator", "Shared evidence context"],
   },
   {
+    id: "m-5",
     phase: "Phase 5",
     title: "External gateway if needed",
+    summary: "Use an external gateway only when advanced provider routing or cross-channel orchestration is required.",
     items: ["Job queue", "Streaming/status endpoints", "Provider routing", "Retry/rate limit", "Cross-channel API"],
   },
 ];
 
 const smokeTests = [
-  {
-    name: "Current view default selection",
-    expected: "The first node should be Service Portal Chat UI and render without missing icons.",
-  },
-  {
-    name: "Next view reliability lane",
-    expected: "The Reliability + Observability lane should render the Gauge icon without errors.",
-  },
-  {
-    name: "Compare mode",
-    expected: "Clicking Compare should display What we have vs Next stage cards side by side.",
-  },
-  {
-    name: "Node detail drawer",
-    expected: "Clicking any node should update the selected-node drawer with title, body, dev note, and outcome/proof.",
-  },
+  { name: "Current view default selection", expected: "The first node should be Service Portal Chat and render without missing icons." },
+  { name: "Next view reliability lane", expected: "The Reliability + Observability lane should render the Gauge icon without errors." },
+  { name: "Compare mode", expected: "Clicking Compare should display current vs next-stage cards side by side." },
+  { name: "Feature modal", expected: "Clicking any feature should open a popup with body, outcome, and developer note." },
+  { name: "Kill-switch modal", expected: "Clicking any kill switch should open a popup with scope, trigger, action, property, and owner." },
+  { name: "Runtime flowcharts", expected: "The flowchart section should switch between current execution, Bedrock, external gateway, multi-agent, and kill-switch safety flows." },
 ];
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-const UI = {
+const LAYOUT = {
   pageGutter: "px-4 sm:px-6 lg:px-8",
   sectionY: "py-14 md:py-20",
+  heroY: "pb-12 pt-12 md:pb-16 md:pt-16",
   cardPad: "p-5 md:p-6",
   cardPadLoose: "p-5 md:p-8",
   panelPad: "p-4 md:p-5",
@@ -533,33 +700,44 @@ const UI = {
   gridGap: "gap-5 md:gap-6",
 };
 
-function Card({ children, className = "", style = {} }) {
+function Card({ children, className = "", style = {}, onClick }) {
   return (
-    <div
-      className={cn("border bg-white", className)}
+    <motion.div
+      onClick={onClick}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={onClick ? { y: -6, scale: 1.012 } : undefined}
+      whileTap={onClick ? { scale: 0.992 } : undefined}
+      className={cn("relative overflow-hidden border bg-white", onClick && "cursor-pointer", className)}
       style={{
         borderColor: "rgba(217, 222, 226, 0.82)",
         boxShadow: "0 20px 48px rgba(17,34,69,0.11)",
         ...style,
       }}
     >
+      <motion.div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(32,201,160,0.75), transparent)" }}
+        animate={{ x: ["-100%", "100%"] }}
+        transition={{ duration: 4.2, repeat: Infinity, ease: "linear" }}
+      />
       {children}
-    </div>
+    </motion.div>
   );
 }
 
 function Button({ children, active, variant = "solid", className = "", ...props }) {
   const isOutline = variant === "outline";
   return (
-    <button
+    <motion.button
       {...props}
+      whileHover={{ y: -2, scale: 1.025 }}
+      whileTap={{ scale: 0.97 }}
       className={cn(
-        "inline-flex items-center justify-center rounded-[999px] px-4 py-2.5 text-sm font-semibold transition duration-200 focus:outline-none focus:ring-4 sm:px-5 sm:py-3",
-        active
-          ? "text-white"
-          : isOutline
-            ? "bg-white text-[#112245] hover:bg-[#ECF2F7]"
-            : "text-white hover:opacity-95",
+        "relative inline-flex items-center justify-center overflow-hidden rounded-[999px] px-4 py-2.5 text-sm font-semibold transition duration-200 focus:outline-none focus:ring-4 sm:px-5 sm:py-3",
+        active ? "text-white" : isOutline ? "bg-white text-[#112245] hover:bg-[#ECF2F7]" : "text-white hover:opacity-95",
         className
       )}
       style={{
@@ -568,35 +746,145 @@ function Button({ children, active, variant = "solid", className = "", ...props 
         boxShadow: active ? "0 12px 28px rgba(17,34,69,0.18)" : "0 2px 8px rgba(17,34,69,0.08)",
       }}
     >
-      {children}
-    </button>
+      {active && (
+        <motion.span
+          className="absolute inset-y-0 -left-8 w-8 rotate-12 bg-white/20"
+          animate={{ x: [0, 180] }}
+          transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
+        />
+      )}
+      <span className="relative z-10 inline-flex items-center">{children}</span>
+    </motion.button>
   );
 }
 
 function SectionTitle({ eyebrow, title, subtitle, dark = false }) {
   return (
-    <div className="mx-auto max-w-4xl text-center">
-      <div
+    <motion.div className="mx-auto max-w-4xl text-center" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+      <motion.div
+        variants={fadeUp}
         className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] shadow-sm"
         style={{
           color: KS.keenGreen,
           background: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.86)",
           borderColor: dark ? "rgba(255,255,255,0.14)" : "rgba(32,201,160,0.22)",
         }}
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Sparkles className="h-3.5 w-3.5" /> {eyebrow}
-      </div>
-      <h2
+        <motion.span animate={{ rotate: [0, 12, -12, 0], scale: [1, 1.18, 1] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+          <Sparkles className="h-3.5 w-3.5" />
+        </motion.span>
+        {eyebrow}
+      </motion.div>
+      <motion.h2
+        variants={fadeUp}
         className={cn("tracking-[-0.04em]", dark ? "text-white" : "text-[#112245]")}
         style={{ fontSize: "clamp(32px, 4vw, 56px)", lineHeight: 1.04, fontWeight: 500 }}
       >
         {title}
-      </h2>
+      </motion.h2>
       {subtitle && (
-        <p className={cn("mt-5 text-base leading-8 md:text-lg", dark ? "text-white/70" : "text-[#2B3D65]")}>{subtitle}</p>
+        <motion.p variants={fadeUp} className={cn("mt-5 text-base leading-8 md:text-lg", dark ? "text-white/70" : "text-[#2B3D65]")}>{subtitle}</motion.p>
       )}
-    </div>
+      <AnimatedRail dark={dark} />
+    </motion.div>
   );
+}
+
+function FeatureModal({ modal, onClose }) {
+  if (!modal) return null;
+  const Icon = modal.icon || Bot;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[80] flex items-center justify-center px-4 py-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{ background: "rgba(17,34,69,0.62)", backdropFilter: "blur(10px)" }}
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 44, scale: 0.92, rotateX: 8 }}
+          animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 210, damping: 24 }}
+          className={cn("relative max-h-[88vh] w-full max-w-4xl overflow-y-auto bg-white shadow-2xl", LAYOUT.cardRadius, LAYOUT.cardPadLoose)}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="relative mb-6 flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] text-white" style={{ background: KS.phantom }}>
+                <Icon className="h-7 w-7" />
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenDark }}>{modal.eyebrow || "Feature detail"}</div>
+                <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[#112245] md:text-4xl">{modal.title}</h3>
+                {modal.subtitle && <p className="mt-2 text-sm leading-6 text-[#5B6A8A]">{modal.subtitle}</p>}
+              </div>
+            </div>
+            <motion.button whileHover={{ rotate: 90, scale: 1.08 }} whileTap={{ scale: 0.92 }} onClick={onClose} className="rounded-full bg-[#ECF2F7] p-3 text-[#112245] transition hover:bg-[#D9DEE2]" aria-label="Close modal">
+              <X className="h-5 w-5" />
+            </motion.button>
+          </div>
+
+          {modal.body && <p className="text-base leading-8 text-[#2B3D65]">{modal.body}</p>}
+
+          {modal.sections && (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {modal.sections.map((section) => (
+                <div key={section.label} className={cn(LAYOUT.panelRadius, LAYOUT.panelPad)} style={{ background: section.tone === "risk" ? "#FFF7E6" : section.tone === "danger" ? "#FFF0EF" : "#EAF9F4", border: `1px solid ${section.tone === "risk" ? "#F1D99A" : section.tone === "danger" ? "#F0C9C6" : "#BFEBDD"}` }}>
+                  <div className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: section.tone === "danger" ? KS.danger : KS.greenDark }}>{section.label}</div>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-[#2B3D65]">{section.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {modal.list && (
+            <div className={cn("mt-6", LAYOUT.panelRadius, LAYOUT.panelPad)} style={{ background: KS.phantom }}>
+              <div className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: KS.greenLight }}>{modal.listLabel || "Details"}</div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {modal.list.map((item) => (
+                  <div key={item} className="rounded-[16px] bg-white/10 p-3 text-sm font-semibold leading-6 text-white ring-1 ring-white/10">
+                    <CheckCircle2 className="mr-2 inline h-4 w-4" style={{ color: KS.keenGreen }} /> {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {modal.flow && (
+            <div className="mt-6 grid gap-4 md:grid-cols-4">
+              {modal.flow.map(([title, text], index) => (
+                <div key={`${title}-${index}`} className="relative rounded-[22px] border bg-white p-4" style={{ borderColor: index % 2 === 0 ? "#BFEBDD" : "#C7D9FF", boxShadow: "0 10px 26px rgba(17,34,69,0.08)" }}>
+                  <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-bold text-white" style={{ background: index % 2 === 0 ? KS.keenGreen : KS.codeBlue }}>{index + 1}</div>
+                  <h4 className="text-sm font-bold tracking-[-0.03em] text-[#112245]">{title}</h4>
+                  <p className="mt-2 text-xs leading-5 text-[#5B6A8A]">{text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function openNodeModal(node, mode, setModal) {
+  setModal({
+    id: node.id,
+    title: node.title,
+    icon: node.icon,
+    eyebrow: mode === "current" ? "Current system feature" : "Next-stage feature",
+    body: node.body,
+    sections: [
+      { label: mode === "current" ? "Why it matters" : "Expected outcome", value: node.proof || node.outcome || "Not recorded." },
+      { label: "Developer note", value: node.devNote || "Not recorded." },
+    ],
+  });
 }
 
 function FlowNode({ node, color, active, onClick }) {
@@ -604,148 +892,303 @@ function FlowNode({ node, color, active, onClick }) {
   const theme = laneThemes[color] || laneThemes.data;
 
   return (
-    <button
+    <motion.button
       onClick={onClick}
-      className={cn("group w-full border text-left transition duration-300 hover:-translate-y-1", UI.panelRadius, UI.panelPad, active && "scale-[1.015]")}
+      whileHover={{ y: -8, scale: 1.025 }}
+      whileTap={{ scale: 0.985 }}
+      className={cn("group relative w-full overflow-hidden border text-left", LAYOUT.panelRadius, LAYOUT.panelPad, active && "scale-[1.015]")}
       style={{
         background: active ? KS.white : theme.tint,
         borderColor: active ? theme.accent : theme.border,
         boxShadow: active ? `0 18px 42px rgba(17,34,69,0.18), 0 0 0 4px ${theme.border}` : "0 8px 24px rgba(17,34,69,0.08)",
       }}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div
+      <div className="relative mb-4 flex items-start justify-between gap-3">
+        <motion.div
           className="flex h-11 w-11 items-center justify-center rounded-[16px] shadow-sm"
           style={{ background: KS.white, color: theme.accent }}
+          animate={{ rotate: active ? [0, 4, -4, 0] : 0, y: active ? [0, -2, 0] : 0 }}
+          transition={{ duration: 2.4, repeat: active ? Infinity : 0, ease: "easeInOut" }}
         >
           <Icon className="h-5 w-5" />
-        </div>
-        <ChevronRight className="mt-2 h-4 w-4 text-[#8C98B0] transition group-hover:translate-x-1" />
+        </motion.div>
+        <motion.div animate={{ x: active ? [0, 4, 0] : 0 }} transition={{ duration: 1.4, repeat: active ? Infinity : 0 }}>
+          <ChevronRight className="mt-2 h-4 w-4 text-[#8C98B0] transition group-hover:translate-x-1" />
+        </motion.div>
       </div>
-      <h3 className="text-base font-bold tracking-[-0.02em] text-[#112245]">{node.title}</h3>
-      <p className="mt-2 text-xs leading-5 text-[#5B6A8A]">{node.body}</p>
-    </button>
+      <h3 className="relative text-base font-bold tracking-[-0.02em] text-[#112245]">{node.title}</h3>
+      <p className="relative mt-2 line-clamp-3 text-xs leading-5 text-[#5B6A8A]">{node.body}</p>
+      <div className="relative mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: theme.accent }}>Open story</div>
+    </motion.button>
   );
 }
 
-function Lane({ lane, index, activeKey, setActiveKey, mode }) {
+function Lane({ lane, index, activeKey, setActiveKey, mode, setModal }) {
   const LaneIcon = lane.icon || Layers3;
   const theme = laneThemes[lane.color] || laneThemes.data;
 
   return (
-    <div className="relative">
-      <Card className={cn("h-full bg-white/88 backdrop-blur", UI.cardRadius)}>
-        <div className={UI.cardPad}>
+    <motion.div className="relative" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} transition={{ delay: index * 0.06 }}>
+      <Card className={cn("h-full bg-white/88 backdrop-blur", LAYOUT.cardRadius)}>
+        <div className={LAYOUT.cardPad}>
           <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
+            <motion.div
+              className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white"
+              style={{ background: KS.phantom }}
+              animate={{ boxShadow: ["0 0 0 rgba(32,201,160,0)", "0 0 28px rgba(32,201,160,0.28)", "0 0 0 rgba(32,201,160,0)"] }}
+              transition={{ duration: 3, repeat: Infinity, delay: index * 0.25 }}
+            >
               <LaneIcon className="h-5 w-5" />
-            </div>
+            </motion.div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: theme.accent }}>
-                Layer {index + 1} · {theme.chip}
-              </div>
+              <div className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: theme.accent }}>Layer {index + 1} - {theme.chip}</div>
               <h3 className="text-lg font-bold tracking-[-0.03em] text-[#112245]">{lane.lane}</h3>
             </div>
           </div>
-          <div className="space-y-3">
+          <motion.div className="space-y-3" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
             {lane.nodes.map((node, nodeIndex) => {
               const key = `${mode}-${index}-${nodeIndex}`;
-              return <FlowNode key={node.id || node.title} node={node} color={lane.color} active={activeKey === key} onClick={() => setActiveKey(key)} />;
+              return (
+                <motion.div key={node.id || node.title} variants={fadeUp}>
+                  <FlowNode
+                    node={node}
+                    color={lane.color}
+                    active={activeKey === key}
+                    onClick={() => {
+                      setActiveKey(key);
+                      openNodeModal(node, mode, setModal);
+                    }}
+                  />
+                </motion.div>
+              );
             })}
-          </div>
+          </motion.div>
         </div>
       </Card>
       {index < 4 && (
-        <div className="absolute -right-5 top-1/2 z-10 hidden -translate-y-1/2 rounded-full p-2 text-white shadow-lg xl:block" style={{ background: KS.phantom }}>
+        <motion.div
+          className="absolute -right-5 top-1/2 z-10 hidden -translate-y-1/2 rounded-full p-2 text-white shadow-lg xl:block"
+          style={{ background: KS.phantom }}
+          animate={{ x: [0, 5, 0], boxShadow: ["0 0 0 rgba(32,201,160,0)", "0 0 22px rgba(32,201,160,0.45)", "0 0 0 rgba(32,201,160,0)"] }}
+          transition={{ duration: 2.2, repeat: Infinity, delay: index * 0.2 }}
+        >
           <ArrowRight className="h-4 w-4" />
-        </div>
+        </motion.div>
       )}
-    </div>
-  );
-}
-
-function DetailDrawer({ selected, mode }) {
-  if (!selected) return null;
-  const Icon = selected.icon || Bot;
-  const proofLabel = mode === "current" ? "Why this matters now" : "Next-stage outcome";
-  const value = selected.proof || selected.outcome || "No outcome recorded.";
-
-  return (
-    <motion.div
-      key={selected.id || selected.title}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24 }}
-      className={cn("mx-auto mt-8 max-w-6xl text-white", UI.cardRadius, UI.cardPad)}
-      style={{ background: KS.phantom, boxShadow: "0 24px 70px rgba(17,34,69,0.28)" }}
-    >
-      <div className="flex flex-col gap-5 md:flex-row md:items-start">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px]" style={{ background: KS.keenGreen, color: KS.phantom }}>
-          <Icon className="h-8 w-8" />
-        </div>
-        <div className="flex-1">
-          <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.keenGreen }}>
-            Selected node
-          </div>
-          <h3 className="mt-2 text-3xl font-semibold tracking-[-0.04em] md:text-4xl">{selected.title}</h3>
-          <p className="mt-3 text-base leading-8 text-white/72">{selected.body}</p>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className={cn("bg-white/10 ring-1 ring-white/10", UI.panelRadius, UI.panelPad)}>
-              <div className="text-xs font-bold uppercase tracking-wide" style={{ color: KS.greenLight }}>
-                {proofLabel}
-              </div>
-              <p className="mt-2 text-sm font-semibold leading-6 text-white">{value}</p>
-            </div>
-            <div className={cn("bg-white/10 ring-1 ring-white/10", UI.panelRadius, UI.panelPad)}>
-              <div className="text-xs font-bold uppercase tracking-wide" style={{ color: KS.greenLight }}>
-                Developer note
-              </div>
-              <p className="mt-2 text-sm font-semibold leading-6 text-white">{selected.devNote || "No developer note recorded."}</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </motion.div>
   );
 }
 
-function MiniFlow({ pattern }) {
-  const Icon = pattern.icon || CheckCircle2;
-  const isGood = pattern.tone === "good";
+function ProviderCards({ setModal }) {
+  return (
+    <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-3", LAYOUT.gridGap)}>
+      {providerOptions.map((option) => {
+        const Icon = option.icon || BrainCircuit;
+        return (
+          <Card
+            key={option.id}
+            className={cn("bg-white/90", LAYOUT.cardRadius)}
+            onClick={() => setModal({
+              title: option.name,
+              icon: option.icon,
+              eyebrow: "Provider path",
+              body: option.summary,
+              sections: [
+                { label: "Best for", value: option.bestFor },
+                { label: "Risk", value: option.risk, tone: "risk" },
+                { label: "Pattern", value: option.pattern },
+              ],
+            })}
+          >
+            <div className={LAYOUT.cardPad}>
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
+                <Icon className="h-6 w-6" />
+              </div>
+              <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{option.name}</h3>
+              <p className="mt-3 text-sm leading-6 text-[#5B6A8A]">{option.summary}</p>
+              <div className="mt-5 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.greenDark }}>Open provider story</div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function TimeoutCards({ setModal }) {
+  return (
+    <div className={cn("mx-auto mt-12 grid max-w-6xl md:grid-cols-2", LAYOUT.gridGap)}>
+      {timeoutPatterns.map((pattern) => {
+        const Icon = pattern.icon || CheckCircle2;
+        const isGood = pattern.tone === "good";
+        return (
+          <Card
+            key={pattern.id}
+            className={LAYOUT.cardRadius}
+            style={{ background: isGood ? "#EAF9F4" : "#FFF0EF", borderColor: isGood ? "#BFEBDD" : "#F0C9C6" }}
+            onClick={() => setModal({
+              title: pattern.title,
+              icon: pattern.icon,
+              eyebrow: "Timeout design",
+              body: pattern.note,
+              flow: pattern.flow.map((step) => [step, step === "Start async job" || step === "Return job_id/status" || step === "Poll conversation/status" ? "Keeps long-running work outside the original request." : "Runtime step in the request lifecycle."]),
+            })}
+          >
+            <div className={LAYOUT.cardPad}>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: isGood ? KS.greenDark : KS.danger }}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{pattern.title}</h3>
+              </div>
+              <p className="text-sm font-semibold leading-6 text-[#2B3D65]">{pattern.summary}</p>
+              <div className="mt-5 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: isGood ? KS.greenDark : KS.danger }}>Open flow</div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function KillSwitchMatrix({ setModal }) {
+  return (
+    <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-2 xl:grid-cols-4", LAYOUT.gridGap)}>
+      {killSwitches.map((item) => {
+        const Icon = item.icon || ShieldCheck;
+        return (
+          <Card
+            key={item.id}
+            className={cn("bg-white/92", LAYOUT.cardRadius)}
+            onClick={() => setModal({
+              title: item.title,
+              icon: item.icon,
+              eyebrow: "Kill switch",
+              body: "Safety control for predictable degradation during incidents, outages, or unstable tool behavior.",
+              sections: [
+                { label: "Scope", value: item.scope },
+                { label: "Trigger", value: item.trigger, tone: "risk" },
+                { label: "Action", value: item.action },
+                { label: "Property / Control", value: item.property },
+                { label: "Owner", value: item.owner },
+              ],
+            })}
+          >
+            <div className={LAYOUT.cardPad}>
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <div className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ background: "#FFF0EF", color: KS.danger, border: "1px solid #F0C9C6" }}>Safety</div>
+              </div>
+              <h3 className="text-xl font-semibold tracking-[-0.04em] text-[#112245]">{item.title}</h3>
+              <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#5B6A8A]">{item.action}</p>
+              <div className="mt-5 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.danger }}>Open kill switch</div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function ScenarioFlowcharts({ setModal }) {
+  const [activeScenario, setActiveScenario] = useState(0);
+  const scenario = scenarioFlowcharts[activeScenario] || scenarioFlowcharts[0];
 
   return (
-    <Card className={UI.cardRadius} style={{ background: isGood ? "#EAF9F4" : "#FFF0EF", borderColor: isGood ? "#BFEBDD" : "#F0C9C6" }}>
-      <div className={UI.cardPad}>
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: isGood ? KS.greenDark : KS.danger }}>
-            <Icon className="h-6 w-6" />
-          </div>
-          <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{pattern.title}</h3>
-        </div>
-        <div className="space-y-3">
-          {pattern.flow.map((step, index) => (
-            <div key={step} className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white text-xs font-bold text-[#112245] shadow-sm">{index + 1}</div>
-              <div className="flex-1 rounded-[16px] bg-white/82 p-3 text-sm font-bold text-[#2B3D65]">{step}</div>
-              {index < pattern.flow.length - 1 && <ArrowDown className="hidden h-4 w-4 text-[#8C98B0] md:block" />}
-            </div>
-          ))}
-        </div>
-        <p className="mt-5 text-sm font-semibold leading-6 text-[#2B3D65]">{pattern.note}</p>
+    <div className="mx-auto mt-12 max-w-7xl">
+      <div className="mb-6 flex flex-wrap justify-center gap-2">
+        {scenarioFlowcharts.map((item, index) => (
+          <Button key={item.id} variant={activeScenario === index ? "solid" : "outline"} active={activeScenario === index} onClick={() => setActiveScenario(index)}>
+            {item.title}
+          </Button>
+        ))}
       </div>
-    </Card>
+
+      <Card
+        className={cn("bg-white/92", LAYOUT.cardRadius)}
+        onClick={() => setModal({
+          title: scenario.title,
+          icon: Workflow,
+          eyebrow: "Runtime flowchart",
+          body: scenario.subtitle,
+          flow: scenario.steps,
+        })}
+      >
+        <div className={LAYOUT.cardPadLoose}>
+          <div className="mb-8 text-center">
+            <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenDark }}>Interactive flowchart</div>
+            <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[#112245] md:text-4xl">{scenario.title}</h3>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#5B6A8A]">{scenario.subtitle}</p>
+            <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.codeBlue }}>Open expanded flow</div>
+          </div>
+
+          <motion.div className="grid gap-4 md:grid-cols-4" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
+            {scenario.steps.map(([title, text], index) => (
+              <motion.div key={`${title}-${index}`} className="relative" variants={fadeUp}>
+                <motion.div
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className={cn("h-full border bg-white", LAYOUT.panelRadius, LAYOUT.panelPad)}
+                  style={{ borderColor: index % 2 === 0 ? "#BFEBDD" : "#C7D9FF", boxShadow: "0 10px 26px rgba(17,34,69,0.08)" }}
+                >
+                  <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-[12px] text-sm font-bold text-white" style={{ background: index % 2 === 0 ? KS.keenGreen : KS.codeBlue }}>{index + 1}</div>
+                  <h4 className="text-base font-bold tracking-[-0.03em] text-[#112245]">{title}</h4>
+                  <p className="mt-2 text-xs leading-5 text-[#5B6A8A]">{text}</p>
+                </motion.div>
+                {index < scenario.steps.length - 1 && (
+                  <motion.div className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white p-1 shadow md:block" animate={{ x: [0, 4, 0] }} transition={{ duration: 1.4, repeat: Infinity, delay: index * 0.12 }}>
+                    <ArrowRight className="h-4 w-4" style={{ color: KS.phantom }} />
+                  </motion.div>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function MigrationTimeline({ setModal }) {
+  return (
+    <div className="mx-auto mt-12 max-w-6xl">
+      <div className="relative space-y-5">
+        <div className="absolute left-6 top-0 hidden h-full w-px md:block" style={{ background: `linear-gradient(${KS.keenGreen}, rgba(255,255,255,0.12), transparent)` }} />
+        {migrationPhases.map((phase, index) => (
+          <motion.div key={phase.id} initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 140, damping: 20, delay: index * 0.08 }} className="relative flex gap-5">
+            <motion.div className="z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] text-[#112245] shadow-lg" style={{ background: KS.keenGreen }} animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity, delay: index * 0.22 }}>
+              <span className="font-bold">{index + 1}</span>
+            </motion.div>
+            <button
+              className={cn("flex-1 border border-white/10 bg-white/8 text-left shadow-xl shadow-black/20 transition hover:-translate-y-1 hover:bg-white/12", LAYOUT.cardRadius, LAYOUT.cardPad)}
+              onClick={() => setModal({
+                title: phase.title,
+                icon: ClipboardCheck,
+                eyebrow: phase.phase,
+                body: phase.summary,
+                listLabel: "Implementation checklist",
+                list: phase.items,
+              })}
+            >
+              <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenLight }}>{phase.phase}</div>
+              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">{phase.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/70">{phase.summary}</p>
+              <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.keenGreen }}>Open phase details</div>
+            </button>
+          </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }
 
 function SmokeTestCard({ test, index }) {
   return (
-    <Card className={cn("bg-white/90", UI.panelRadius)}>
-      <div className={UI.panelPad}>
+    <Card className={cn("bg-white/90", LAYOUT.panelRadius)}>
+      <div className={LAYOUT.panelPad}>
         <div className="mb-3 flex items-center justify-between">
-          <div className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: "#EAF9F4", color: KS.greenDark, border: "1px solid #BFEBDD" }}>
-            Test {index + 1}
-          </div>
+          <div className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: "#EAF9F4", color: KS.greenDark, border: "1px solid #BFEBDD" }}>Test {index + 1}</div>
           <CheckCircle2 className="h-5 w-5" style={{ color: KS.keenGreen }} />
         </div>
         <h3 className="text-lg font-bold text-[#112245]">{test.name}</h3>
@@ -759,14 +1202,9 @@ export default function KeenStackAgentFlowchart() {
   const [view, setView] = useState("current");
   const [activeKey, setActiveKey] = useState("current-0-0");
   const [compareMode, setCompareMode] = useState(false);
+  const [modal, setModal] = useState(null);
 
   const architecture = view === "current" ? currentArchitecture : nextArchitecture;
-
-  const selected = useMemo(() => {
-    const [mode, laneIndex, nodeIndex] = activeKey.split("-");
-    const source = mode === "current" ? currentArchitecture : nextArchitecture;
-    return source?.[Number(laneIndex)]?.nodes?.[Number(nodeIndex)] || source?.[0]?.nodes?.[0];
-  }, [activeKey]);
 
   function switchView(nextView) {
     setView(nextView);
@@ -775,80 +1213,77 @@ export default function KeenStackAgentFlowchart() {
 
   return (
     <div
-      className="min-h-screen text-[#112245]"
+      className="relative min-h-screen overflow-hidden text-[#112245]"
       style={{
         background: `radial-gradient(circle at top left, rgba(32,201,160,0.18), transparent 34%), radial-gradient(circle at bottom right, rgba(21,60,168,0.16), transparent 34%), ${KS.polar}`,
-        fontFamily: "Open Sans, system-ui, -apple-system, Segoe UI, sans-serif",
+        fontFamily: "Open Sans, Arial, sans-serif",
       }}
     >
-      <header className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ background: "rgba(255,255,255,0.78)", borderColor: "rgba(217,222,226,0.8)" }}>
-        <div className={cn("mx-auto flex max-w-7xl flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between", UI.pageGutter)}>
+      <FeatureModal modal={modal} onClose={() => setModal(null)} />
+
+      <motion.header initial={{ y: -24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }} className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ background: "rgba(255,255,255,0.78)", borderColor: "rgba(217,222,226,0.8)" }}>
+        <div className={cn("mx-auto flex max-w-7xl flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between", LAYOUT.pageGutter)}>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-white shadow-lg" style={{ background: KS.phantom }}>
               <Bot className="h-6 w-6" />
             </div>
             <div>
               <div className="text-sm font-bold uppercase tracking-[0.24em] text-[#112245]">KeenStack AI Agent</div>
-              <div className="text-xs font-semibold text-[#5B6A8A]">Current architecture + next-stage flowchart</div>
+              <div className="text-xs font-semibold text-[#5B6A8A]">Interactive architecture story</div>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => switchView("current")} active={view === "current"} variant={view === "current" ? "solid" : "outline"}>
-              What we have
-            </Button>
-            <Button onClick={() => switchView("next")} active={view === "next"} variant={view === "next" ? "solid" : "outline"}>
-              Next stage
-            </Button>
-            <Button variant="outline" onClick={() => setCompareMode(!compareMode)}>
-              <Layers3 className="mr-2 h-4 w-4" /> {compareMode ? "Hide compare" : "Compare"}
-            </Button>
+            <Button onClick={() => switchView("current")} active={view === "current"} variant={view === "current" ? "solid" : "outline"}>Current system</Button>
+            <Button onClick={() => switchView("next")} active={view === "next"} variant={view === "next" ? "solid" : "outline"}>Next stage</Button>
+            <Button variant="outline" onClick={() => setCompareMode(!compareMode)}><Layers3 className="mr-2 h-4 w-4" /> {compareMode ? "Hide compare" : "Compare"}</Button>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      <main>
-        <section className={cn("mx-auto max-w-7xl pb-12 pt-12 md:pb-16 md:pt-16", UI.pageGutter)}>
-          <div className={cn("grid items-center md:grid-cols-[1.05fr_0.95fr]", UI.gridGap)}>
+      <main className="relative z-10">
+        <section className={cn("mx-auto max-w-7xl", LAYOUT.pageGutter, LAYOUT.heroY)}>
+          <div className={cn("grid items-center md:grid-cols-[1.05fr_0.95fr]", LAYOUT.gridGap)}>
             <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
               <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-bold shadow-sm" style={{ color: KS.greenDark, border: `1px solid ${KS.greenLight}` }}>
-                <Sparkles className="h-4 w-4" /> Architecture draft for agent v2
+                <Sparkles className="h-4 w-4" /> Architecture story for agent v2
               </div>
-              <h1
-                className="leading-[0.96] tracking-[-0.06em] text-[#112245]"
-                style={{ fontFamily: "Sora, system-ui, sans-serif", fontSize: "clamp(52px, 7vw, 92px)", fontWeight: 300 }}
-              >
+              <h1 className="leading-[0.96] tracking-[-0.06em] text-[#112245]" style={{ fontFamily: "Sora, Arial, sans-serif", fontSize: "clamp(52px, 7vw, 92px)", fontWeight: 300 }}>
                 From working demo to
-                <span className="block" style={{ color: KS.codeBlue, fontWeight: 500 }}>
-                  enterprise agent platform.
-                </span>
+                <span className="block" style={{ color: KS.codeBlue, fontWeight: 500 }}>enterprise agent platform.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-[#2B3D65]">
-                This flowchart shows both states: the ServiceNow-native agent we have now, and the next-stage architecture with stability, Bedrock Spoke, optional external gateway, and multi-agent routing.
+                A guided, clickable story of the current ServiceNow-native agent and the next-stage architecture with stability, Bedrock Spoke, optional external gateway, multi-agent routing, and kill-switch safety controls.
               </p>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}>
-              <Card className={cn("bg-white/86", UI.cardRadius)}>
-                <div className={UI.cardPad}>
+              <Card className={cn("bg-white/86", LAYOUT.cardRadius)}>
+                <div className={LAYOUT.cardPad}>
                   <div className="mb-4 flex items-center justify-between">
-                    <div className="text-sm font-bold uppercase tracking-[0.2em]" style={{ color: KS.greenDark }}>
-                      Core principle
-                    </div>
+                    <div className="text-sm font-bold uppercase tracking-[0.2em]" style={{ color: KS.greenDark }}>Core principle</div>
                     <ShieldCheck className="h-5 w-5" style={{ color: KS.keenGreen }} />
                   </div>
-                  <div className={cn("text-white", UI.panelRadius, UI.panelPad)} style={{ background: KS.phantom }}>
-                    <p className="text-lg font-bold leading-8">
-                      ServiceNow remains the execution plane. The LLM decides, explains, plans, or delegates. Tools execute. Guard policy controls. Conversation table remembers.
-                    </p>
-                  </div>
+                  <button
+                    onClick={() => setModal({
+                      title: "Core architecture principle",
+                      icon: ShieldCheck,
+                      eyebrow: "Mental model",
+                      body: "ServiceNow remains the execution plane. The LLM decides, explains, plans, or delegates. Tools execute. Guard policy controls. Conversation table remembers.",
+                      sections: [
+                        { label: "Execution plane", value: "ServiceNow owns records, ACLs, tools, attachments, audit, and conversation state." },
+                        { label: "Reasoning plane", value: "LLM providers and specialist agents decide, explain, or propose actions." },
+                      ],
+                    })}
+                    className={cn("w-full text-left text-white transition hover:opacity-95", LAYOUT.panelRadius, LAYOUT.panelPad)}
+                    style={{ background: KS.phantom }}
+                  >
+                    <p className="text-lg font-bold leading-8">ServiceNow remains the execution plane. The LLM decides, explains, plans, or delegates. Tools execute. Guard policy controls. Conversation table remembers.</p>
+                    <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.keenGreen }}>Open principle</div>
+                  </button>
                   <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    {[
-                      ["Now", "LLMClient + tools"],
-                      ["Next", "Provider router + Bedrock"],
-                      ["Future", "Multi-agent gateway"],
-                    ].map(([top, bottom]) => (
-                      <div key={top} className={cn("rounded-[18px] text-center", UI.compactPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
+                    {[["Current", "LLMClient + tools"], ["Next", "Provider router + Bedrock"], ["Future", "Multi-agent gateway"]].map(([top, bottom]) => (
+                      <div key={top} className={cn("rounded-[18px] text-center", LAYOUT.compactPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
                         <div className="text-xl font-bold text-[#112245]">{top}</div>
                         <div className="mt-1 text-xs font-bold text-[#5B6A8A]">{bottom}</div>
                       </div>
@@ -861,32 +1296,18 @@ export default function KeenStackAgentFlowchart() {
         </section>
 
         {compareMode && (
-          <section className={cn("mx-auto max-w-7xl pb-10", UI.pageGutter)}>
-            <Card className={cn("bg-white/90", UI.cardRadius)}>
-              <div className={UI.cardPad}>
-                <div className="mb-5 flex items-center gap-2 text-lg font-bold text-[#112245]">
-                  <Layers3 className="h-5 w-5" style={{ color: KS.keenGreen }} /> Quick comparison
-                </div>
+          <section className={cn("mx-auto max-w-7xl pb-10", LAYOUT.pageGutter)}>
+            <Card className={cn("bg-white/90", LAYOUT.cardRadius)}>
+              <div className={LAYOUT.cardPad}>
+                <div className="mb-5 flex items-center gap-2 text-lg font-bold text-[#112245]"><Layers3 className="h-5 w-5" style={{ color: KS.keenGreen }} /> Quick comparison</div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className={cn(UI.panelRadius, UI.panelPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
-                    <h3 className="text-xl font-bold text-[#112245]">What we have</h3>
-                    <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]">
-                      <li>• Service Portal + async conversation worker</li>
-                      <li>• LLM orchestration with governed ToolRouter</li>
-                      <li>• ITSM, CMDB, KB, navigation, Planning Mode</li>
-                      <li>• Developer Operator and 792 export context</li>
-                      <li>• CSV/attachment evidence and raw tool call visibility</li>
-                    </ul>
+                  <div className={cn(LAYOUT.panelRadius, LAYOUT.panelPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
+                    <h3 className="text-xl font-bold text-[#112245]">Current system</h3>
+                    <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]"><li>- Service Portal + async conversation worker</li><li>- LLM orchestration with governed ToolRouter</li><li>- ITSM, CMDB, KB, navigation, Planning Mode</li><li>- Developer Operator and 792 export context</li><li>- CSV/attachment evidence and raw tool call traceability</li></ul>
                   </div>
-                  <div className={cn(UI.panelRadius, UI.panelPad)} style={{ background: "#EDF4FF", border: "1px solid #C7D9FF" }}>
+                  <div className={cn(LAYOUT.panelRadius, LAYOUT.panelPad)} style={{ background: "#EDF4FF", border: "1px solid #C7D9FF" }}>
                     <h3 className="text-xl font-bold text-[#112245]">Next stage</h3>
-                    <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]">
-                      <li>• Regression-tested stable core</li>
-                      <li>• LLMProviderRouter with LLMClient / Bedrock Spoke / Gateway</li>
-                      <li>• ServiceNow-native Bedrock path without blocking UI</li>
-                      <li>• Optional external gateway for advanced orchestration</li>
-                      <li>• Supervisor + specialist multi-agent architecture</li>
-                    </ul>
+                    <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]"><li>- Regression-tested stable core</li><li>- LLMProviderRouter with LLMClient / Bedrock Spoke / Gateway</li><li>- ServiceNow-native Bedrock path without blocking requests</li><li>- Optional external gateway for advanced orchestration</li><li>- Supervisor + specialist multi-agent architecture</li></ul>
                   </div>
                 </div>
               </div>
@@ -894,137 +1315,50 @@ export default function KeenStackAgentFlowchart() {
           </section>
         )}
 
-        <section className={cn(UI.pageGutter, UI.sectionY)}>
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
           <SectionTitle
             eyebrow={view === "current" ? "Current state" : "Next stage"}
-            title={view === "current" ? "What we have built" : "What the next architecture should become"}
-            subtitle={
-              view === "current"
-                ? "Click any node to inspect its role in the current ServiceNow-native agent."
-                : "Click any node to inspect how the next stage evolves stability, provider routing, Bedrock, external API, and multi-agent routing."
-            }
+            title={view === "current" ? "Current system architecture" : "Next-stage architecture"}
+            subtitle="Click any feature card to open the story, developer note, and outcome in a popup."
           />
 
-          <div className={cn("mx-auto mt-12 grid max-w-[1800px] xl:grid-cols-5", UI.gridGap)}>
+          <div className={cn("mx-auto mt-12 grid max-w-[1800px] xl:grid-cols-5", LAYOUT.gridGap)}>
             {architecture.map((lane, index) => (
-              <Lane key={lane.lane} lane={lane} index={index} activeKey={activeKey} setActiveKey={setActiveKey} mode={view} />
-            ))}
-          </div>
-          <DetailDrawer selected={selected} mode={view} />
-        </section>
-
-        <section className={cn(UI.pageGutter, UI.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
-          <SectionTitle
-            eyebrow="Provider strategy"
-            title="Bedrock Spoke does not remove the need for architecture"
-            subtitle="Bedrock Spoke is a ServiceNow-native provider option. It should sit behind an LLM Provider Router so we do not hardcode ourselves into one path."
-          />
-
-          <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-3", UI.gridGap)}>
-            {providerOptions.map((option) => {
-              const Icon = option.icon || BrainCircuit;
-              return (
-                <Card key={option.name} className={cn("bg-white/90", UI.cardRadius)}>
-                  <div className={UI.cardPad}>
-                    <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{option.name}</h3>
-                    <div className={cn("mt-5 rounded-[18px] text-sm leading-6 text-[#2B3D65]", UI.compactPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
-                      <strong>Best for:</strong> {option.bestFor}
-                    </div>
-                    <div className={cn("mt-3 rounded-[18px] text-sm leading-6 text-[#2B3D65]", UI.compactPad)} style={{ background: "#FFF7E6", border: "1px solid #F1D99A" }}>
-                      <strong>Risk:</strong> {option.risk}
-                    </div>
-                    <div className={cn("mt-3 rounded-[18px] text-sm font-semibold leading-6 text-white", UI.compactPad)} style={{ background: KS.phantom }}>
-                      {option.pattern}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className={cn(UI.pageGutter, UI.sectionY)}>
-          <SectionTitle
-            eyebrow="Timeout design"
-            title="How to avoid webhook timeout with Bedrock or external API"
-            subtitle="The provider does not solve timeout by itself. The async conversation pattern solves it."
-          />
-
-          <div className={cn("mx-auto mt-12 grid max-w-6xl md:grid-cols-2", UI.gridGap)}>
-            {timeoutPatterns.map((pattern) => (
-              <MiniFlow key={pattern.title} pattern={pattern} />
+              <Lane key={lane.lane} lane={lane} index={index} activeKey={activeKey} setActiveKey={setActiveKey} mode={view} setModal={setModal} />
             ))}
           </div>
         </section>
 
-        <section className={cn(UI.pageGutter, UI.sectionY)} style={{ background: "rgba(255,255,255,0.56)" }}>
-          <SectionTitle
-            eyebrow="Smoke tests"
-            title="Basic checks for this flowchart"
-            subtitle="These lightweight tests make sure the interactive architecture view renders and missing-icon issues stay fixed."
-          />
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
+          <SectionTitle eyebrow="Provider strategy" title="Provider paths behind one router" subtitle="Bedrock Spoke is a ServiceNow-native provider option. The provider path should sit behind an LLM Provider Router to avoid hardcoding." />
+          <ProviderCards setModal={setModal} />
+        </section>
+
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
+          <SectionTitle eyebrow="Timeout design" title="Webhook-safe async patterns" subtitle="The provider does not solve timeout by itself. The async conversation pattern solves it." />
+          <TimeoutCards setModal={setModal} />
+        </section>
+
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
+          <SectionTitle eyebrow="Flowcharts" title="Detailed runtime flowcharts" subtitle="Switch between runtime stories, then open the selected flow in a popup." />
+          <ScenarioFlowcharts setModal={setModal} />
+        </section>
+
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
+          <SectionTitle eyebrow="Kill switches" title="Safety controls and degradation paths" subtitle="Each safety control opens as a popup with scope, trigger, action, owner, and property/control." />
+          <KillSwitchMatrix setModal={setModal} />
+        </section>
+
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.56)" }}>
+          <SectionTitle eyebrow="Smoke tests" title="Basic checks for this story" subtitle="Lightweight tests for the interactive architecture story, popups, and missing-icon safety." />
           <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2">
-            {smokeTests.map((test, index) => (
-              <SmokeTestCard key={test.name} test={test} index={index} />
-            ))}
+            {smokeTests.map((test, index) => <SmokeTestCard key={test.name} test={test} index={index} />)}
           </div>
         </section>
 
-        <section className={cn("text-white", UI.pageGutter, UI.sectionY)} style={{ background: KS.phantom }}>
-          <SectionTitle dark eyebrow="Migration path" title="Build sequence" subtitle="This is the practical order. Do not jump straight into multi-agent until the core is stable." />
-
-          <div className="mx-auto mt-12 max-w-6xl">
-            <div className="relative space-y-5">
-              <div className="absolute left-6 top-0 hidden h-full w-px md:block" style={{ background: `linear-gradient(${KS.keenGreen}, rgba(255,255,255,0.12), transparent)` }} />
-              {migrationPhases.map((phase, index) => (
-                <motion.div key={phase.title} initial={{ opacity: 0, x: -18 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.04 }} className="relative flex gap-5">
-                  <div className="z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] text-[#112245] shadow-lg" style={{ background: KS.keenGreen }}>
-                    <span className="font-bold">{index + 1}</span>
-                  </div>
-                  <div className={cn("flex-1 border border-white/10 bg-white/8 shadow-xl shadow-black/20", UI.cardRadius, UI.cardPad)}>
-                    <div className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: KS.greenLight }}>
-                      {phase.phase}
-                    </div>
-                    <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">{phase.title}</h3>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      {phase.items.map((item) => (
-                        <div key={item} className="rounded-[18px] bg-white/10 p-3 text-sm font-semibold leading-6 text-white ring-1 ring-white/10">
-                          <CheckCircle2 className="mr-2 inline h-4 w-4" style={{ color: KS.keenGreen }} /> {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={cn(UI.pageGutter, UI.sectionY)}>
-          <SectionTitle eyebrow="Final v2 shape" title="The architecture sentence" subtitle="This is the simplest way to explain the next stage without overcomplicating it." />
-          <Card className={cn("mx-auto mt-10 max-w-5xl bg-white/90", UI.cardRadius)}>
-            <div className={UI.cardPadLoose}>
-              <div className={cn("text-xl font-semibold leading-9 text-white md:text-2xl", UI.panelRadius, UI.cardPad)} style={{ background: KS.phantom }}>
-                KeenStack AI Agent v2 should keep ServiceNow as the execution plane, add an LLM Provider Router for LLMClient / Bedrock Spoke / external gateway, and evolve into a supervisor-led multi-agent system where specialist agents handle ITSM, CMDB, Knowledge, Developer Operator, App Context, and Planning workflows.
-              </div>
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                {[
-                  [ShieldCheck, "Stable core first", "Regression tests, normalized responses, clear routing, better telemetry."],
-                  [Cloud, "Bedrock as provider", "Use Bedrock Spoke behind provider router, not hardcoded in worker logic."],
-                  [Network, "Multi-agent next", "Supervisor delegates to scoped specialists so each agent has fewer ways to fail."],
-                ].map(([Icon, title, text]) => (
-                  <div key={title} className={cn(UI.panelRadius, UI.panelPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
-                    <Icon className="mb-3 h-6 w-6" style={{ color: KS.greenDark }} />
-                    <h3 className="font-bold text-[#112245]">{title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-[#5B6A8A]">{text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
+        <section className={cn("text-white", LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: KS.phantom }}>
+          <SectionTitle dark eyebrow="Migration path" title="Build sequence" subtitle="Practical build order: stabilize the core before adding provider and multi-agent complexity." />
+          <MigrationTimeline setModal={setModal} />
         </section>
       </main>
     </div>
