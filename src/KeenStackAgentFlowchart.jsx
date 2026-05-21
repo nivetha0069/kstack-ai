@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -71,6 +71,7 @@ const laneThemes = {
   data: { tint: "#F7F9FC", border: KS.slate, accent: KS.phantom60, chip: "Evidence" },
   provider: { tint: "#EDF4FF", border: "#C7D9FF", accent: KS.codeBlue, chip: "Providers" },
   reliability: { tint: "#FFF0EF", border: "#F0C9C6", accent: KS.danger, chip: "Reliability" },
+  gateway: { tint: "#EEF7F4", border: "#A7E6D4", accent: KS.greenDark, chip: "Gateway" },
 };
 
 const fadeUp = {
@@ -277,7 +278,7 @@ const nextArchitecture = [
         icon: Bot,
         body: "Primary ServiceNow-native portal experience continues to use conversation row + async polling.",
         outcome: "No webhook-style blocking from the browser.",
-        devNote: "Keep the portal as the consistent UX shell across providers. The provider should not change the portal contract.",
+        devNote: "Keep the portal as the consistent UX shell across providers. The provider/gateway path should not change the portal contract.",
       },
       {
         id: "n-1-2",
@@ -291,8 +292,8 @@ const nextArchitecture = [
         id: "n-1-3",
         title: "Standalone Web App / API Clients",
         icon: Globe2,
-        body: "Future external channels call a stable API contract instead of duplicating logic.",
-        outcome: "One agent backend, many channels.",
+        body: "External channels submit through the same stable conversation/job contract instead of duplicating agent logic.",
+        outcome: "One agent backend, many frontends.",
         devNote: "Expose a stable channel contract: submit message, receive conversation/job id, poll status, render final answer/evidence.",
       },
     ],
@@ -307,15 +308,20 @@ const nextArchitecture = [
         title: "Conversation + Async Worker",
         icon: Workflow,
         body: "ServiceNow creates conversation, enqueues work, polls status, and renders final response.",
-        outcome: "Avoids timeout whether using LLMClient, Bedrock Spoke, or external gateway.",
-        devNote: "This is the timeout fix. Avoid waiting synchronously for long model calls inside the original request.",
+        outcome: "Avoids timeout whether the request uses LLMClient, Bedrock Spoke, or the AI Orchestration Gateway.",
+        devNote: "This is the timeout fix. Avoid waiting synchronously for long model calls inside the UI request.",
       },
       {
         id: "n-2-2",
         title: "LLM Provider Router",
         icon: Route,
-        body: "New abstraction inside ServiceNow: servicenow_llmclient | bedrock_spoke | external_gateway.",
-        outcome: "Provider can change without rewriting every worker route.",
+        body: "ServiceNow-side abstraction that selects the configured provider path: ServiceNow LLMClient, Bedrock Spoke, or AI Gateway.",
+        outcome: "Provider paths can change without rewriting ChatAgentAjaxWorker routes.",
+        runtime: "Selects and invokes configured provider adapter based on system property or conversation mode.",
+        failureMode: "Provider timeout, misconfigured property, adapter method mismatch.",
+        debugPath: "Check x_kest_ai_agent_v2.llm.provider.active property, provider adapter Script Include, and conversation telemetry fields.",
+        control: "Provider Kill Switch; fallback to LLMClient.",
+        acceptance: "Switching provider by property does not break portal rendering or tool execution.",
         devNote: "Create one provider interface: call(prompt, model, options) -> normalized response. Route provider by property/config.",
       },
       {
@@ -323,39 +329,111 @@ const nextArchitecture = [
         title: "Tool Execution Stays Local",
         icon: Wrench,
         body: "ToolRouter, GuardPolicyEvaluator, record updates, attachments, CSV export, and audit remain in ServiceNow.",
-        outcome: "ServiceNow remains system of record and action layer.",
-        devNote: "External model/gateway can decide, but ServiceNow should execute writes because ACLs, records, and audit live there.",
+        outcome: "ServiceNow remains the system of record and action layer.",
+        devNote: "The gateway can decide/plan/route, but ServiceNow should execute writes because ACLs, records, and audit live there.",
       },
     ],
   },
   {
-    lane: "Model Provider Options",
+    lane: "AI Orchestration Gateway",
+    color: "gateway",
+    icon: Network,
+    nodes: [
+      {
+        id: "n-3-1",
+        title: "Gateway API Contract",
+        icon: Cable,
+        body: "Central API boundary between ServiceNow channels and orchestration. Accepts conversation_id, source, mode, user message, context summary, available tools, specialist hint, provider preference, and timeout budget.",
+        outcome: "Creates one stable orchestration boundary instead of hardcoding provider logic into ChatAgentAjaxWorker.",
+        devNote: "ServiceNow calls the gateway for orchestration/decisioning. ServiceNow still executes record actions locally.",
+        runtime: "Receives normalized requests from ServiceNow and creates an orchestration job.",
+        failureMode: "Bad request shape, auth failure, missing context, unsupported mode.",
+        debugPath: "Check gateway request logs, conversation_id, source, mode, available_tools, and generated job_id.",
+        control: "AI Gateway Kill Switch; provider fallback; structured error response.",
+        acceptance: "ServiceNow receives job_id quickly and conversation row never remains stuck without status.",
+      },
+      {
+        id: "n-3-2",
+        title: "Async Job + Status Layer",
+        icon: Workflow,
+        body: "Gateway returns job_id/status quickly, runs long provider/model work asynchronously, and exposes status/result endpoints for polling or callback.",
+        outcome: "Prevents webhook-style blocking when model calls take longer.",
+        devNote: "Use POST /agent/respond and GET /agent/status/{job_id}; never make ServiceNow wait synchronously for long-running LLM calls.",
+        runtime: "Creates async job, enqueues provider call, updates job status on completion or failure.",
+        failureMode: "Job stuck in processing, callback failure, status endpoint timeout.",
+        debugPath: "Check job_id, job status, queue depth, provider response time, and error payload.",
+        control: "AI Gateway Kill Switch; job timeout threshold; dead-letter queue.",
+        acceptance: "No job remains in processing state indefinitely; every job resolves to complete, failed, or degraded.",
+      },
+      {
+        id: "n-3-3",
+        title: "Provider + Model Router",
+        icon: Route,
+        body: "Routes requests across Bedrock, ServiceNow LLMClient fallback, and future approved providers based on mode, specialist, cost, latency, risk, and availability.",
+        outcome: "Enables model flexibility without rewriting ServiceNow worker logic.",
+        devNote: "Provider routing should be config-driven, kill-switchable, and telemetry-backed.",
+        runtime: "Reads provider config, evaluates routing rules, selects provider adapter, invokes model call.",
+        failureMode: "All providers unavailable, routing misconfiguration, model not found.",
+        debugPath: "Check provider config, routing rules, selected provider, model identifier, and fallback chain.",
+        control: "Provider Kill Switch; per-provider enable/disable; fallback chain config.",
+        acceptance: "Failed provider triggers fallback; no request is silently dropped.",
+      },
+      {
+        id: "n-3-4",
+        title: "Gateway Telemetry + Retry Layer",
+        icon: Gauge,
+        body: "Tracks provider, model, latency, token usage, retry count, timeout reason, malformed response, fallback behavior, and gateway job status.",
+        outcome: "Turns provider failures into diagnosable events instead of mystery blank responses.",
+        devNote: "Return structured errors and fallback status to ServiceNow so the conversation row always completes cleanly.",
+        runtime: "Instruments every provider call with timing, token count, retry attempts, and outcome classification.",
+        failureMode: "Telemetry write failure, log overflow, metric cardinality explosion.",
+        debugPath: "Check gateway telemetry logs, job_id correlation, provider response codes, and retry count.",
+        control: "Telemetry sampling rate; log retention policy; alerting thresholds.",
+        acceptance: "Every gateway job produces at least one telemetry record regardless of outcome.",
+      },
+      {
+        id: "n-3-5",
+        title: "Response Normalizer",
+        icon: Layers3,
+        body: "Converts provider/specialist output into a standard response type: final_answer, plan, tool_calls, or error.",
+        outcome: "ServiceNow receives predictable output regardless of model/provider.",
+        devNote: "Never return raw provider output directly to the portal. Normalize before returning to ServiceNow.",
+      },
+    ],
+  },
+  {
+    lane: "Model Provider Layer",
     color: "provider",
     icon: Cloud,
     nodes: [
       {
-        id: "n-3-1",
-        title: "ServiceNow LLMClient",
-        icon: BrainCircuit,
-        body: "Current/default provider path for existing working behavior.",
-        outcome: "Keeps stable fallback while v2 evolves.",
-        devNote: "Do not remove this until Bedrock/external paths pass regression tests.",
-      },
-      {
-        id: "n-3-2",
-        title: "Amazon Bedrock Spoke",
+        id: "n-4-1",
+        title: "Amazon Bedrock Spoke / Bedrock Runtime",
         icon: Cloud,
-        body: "ServiceNow-native Bedrock integration through Flow/IntegrationHub/GenAI Controller path.",
-        outcome: "Enterprise-friendly AWS model story without mandatory custom API.",
-        devNote: "The spoke is a provider option, not a timeout fix by itself. Keep async worker/polling.",
+        body: "Primary enterprise model-provider path. ServiceNow-native Bedrock Spoke can be used where available; Bedrock Runtime can be called through the AI Gateway where external orchestration is required.",
+        outcome: "Supports AWS-backed enterprise model strategy while preserving ServiceNow-controlled execution.",
+        devNote: "Bedrock Spoke is a provider path. The async conversation/job/status pattern still prevents timeout.",
+        runtime: "Receives prompt from provider router, calls Bedrock model endpoint, returns raw model response.",
+        failureMode: "Bedrock throttling, model not available, malformed prompt, token limit exceeded.",
+        debugPath: "Check Bedrock Spoke flow execution, model ID, input token count, Bedrock response code, and latency.",
+        control: "Provider Kill Switch; Bedrock-specific rate limit config; model fallback.",
+        acceptance: "Bedrock path returns normalized response through provider router without blocking portal request.",
       },
       {
-        id: "n-3-3",
-        title: "External AI Gateway API",
-        icon: Cable,
-        body: "Optional advanced layer for provider routing, streaming, async jobs, retries, model experiments, and multi-agent orchestration.",
-        outcome: "Best for long-term multi-provider and cross-channel architecture.",
-        devNote: "Use job_id/status/callback pattern. Never make ServiceNow block on a long external LLM request.",
+        id: "n-4-2",
+        title: "ServiceNow LLMClient Fallback",
+        icon: BrainCircuit,
+        body: "Fallback/current provider path for existing working behavior while gateway and Bedrock paths mature.",
+        outcome: "Preserves existing demo stability during migration.",
+        devNote: "Keep this available until new providers pass regression tests.",
+      },
+      {
+        id: "n-4-3",
+        title: "Future Approved Providers",
+        icon: Puzzle,
+        body: "Claude/OpenAI/local/on-prem models can be added only when approved and routed through the same provider/gateway contract.",
+        outcome: "Prevents provider-specific rewrites and keeps governance consistent.",
+        devNote: "Do not expose company/customer data to unapproved providers.",
       },
     ],
   },
@@ -365,27 +443,37 @@ const nextArchitecture = [
     icon: Network,
     nodes: [
       {
-        id: "n-4-1",
+        id: "n-5-1",
         title: "Supervisor Agent",
         icon: Network,
-        body: "Classifies intent and delegates to a specialist. Does not execute ServiceNow writes directly.",
+        body: "Classifies intent, risk, target domain, required context source, and execution mode before delegating to a specialist.",
         outcome: "Reduces wrong-tool selection and overloaded prompts.",
-        devNote: "Supervisor chooses specialist and mode. It should not own all tool descriptions or execute all tools.",
+        devNote: "Supervisor chooses specialist and mode. It should not own every tool description or execute ServiceNow writes directly.",
+        runtime: "Receives user message + context, runs intent classification, selects specialist agent and mode.",
+        failureMode: "Wrong specialist selection, ambiguous intent, missing context for classification.",
+        debugPath: "Check supervisor classification output, selected specialist, confidence score, and delegation payload.",
+        control: "Specialist Agent Kill Switch; fallback to general safe mode.",
+        acceptance: "Simple requests route to correct specialist; ambiguous requests ask for clarification instead of guessing.",
       },
       {
-        id: "n-4-2",
+        id: "n-5-2",
         title: "Specialist Agents",
         icon: Puzzle,
-        body: "ITSM Operator, CMDB Analyst, Knowledge Assistant, Developer Operator, App Context Analyst, Document Intake Agent.",
+        body: "ITSM Operator, CMDB Analyst, Knowledge Assistant, Developer Operator, App Context Analyst, and Document Intake Agent. Each specialist receives a restricted tool set and context pack.",
         outcome: "Each agent gets a smaller tool set and better prompt scope.",
-        devNote: "Give each specialist a narrow allowed tool set. This is the main fix for wrong-tool selection at scale.",
+        devNote: "Give each specialist a narrow allowed tool/context set. This is the main fix for wrong-tool selection at scale.",
+        runtime: "Receives delegated request with scoped tools and context, generates response or tool call within its domain.",
+        failureMode: "Specialist uses wrong tool, hallucinated tool name, context pack missing or stale.",
+        debugPath: "Check specialist allowed_tools config, context pack version, tool call output, and guard evaluation.",
+        control: "Per-specialist kill switch; tool-level kill switch; context source kill switch.",
+        acceptance: "Specialist only calls tools in its allowed set; disabled specialist routes to fallback.",
       },
       {
-        id: "n-4-3",
+        id: "n-5-3",
         title: "Planning Coordinator",
         icon: ClipboardCheck,
-        body: "Maps multi-step requests to approved composite workflow IDs, not freehand action chains.",
-        outcome: "Stable plan -> approve -> execute path.",
+        body: "Maps multi-step requests to approved composite workflow IDs and produces plan → approve → execute flows.",
+        outcome: "Stable plan-first execution without arbitrary freehand tool chains.",
         devNote: "Composite workflows should be config/table-driven, not string-matched from natural language only.",
       },
     ],
@@ -396,28 +484,46 @@ const nextArchitecture = [
     icon: Gauge,
     nodes: [
       {
-        id: "n-5-1",
+        id: "n-6-1",
         title: "Regression Test Runner",
         icon: CheckCircle2,
-        body: "Batch tests for every tool family: ITSM, CMDB, KB, navigation, Planning, Developer Operator, 792 app context.",
+        body: "Batch tests for every tool family: ITSM, CMDB, KB, navigation, Planning, Developer Operator, 792 app context, provider routing, and gateway flows.",
         outcome: "One fix should not break another feature.",
         devNote: "Every route/tool needs happy path, missing-input path, governance path, and response-shape check.",
+        runtime: "Executes known-good query pack against each route/tool and compares output shape, route, and tool selection.",
+        failureMode: "Test runner timeout, stale test data, false positives from instance data changes.",
+        debugPath: "Check test runner output logs, failed query details, expected vs actual route/tool, and response shape diff.",
+        control: "Test runner schedule; selective test suite execution; baseline refresh.",
+        acceptance: "All known-good demo queries return consistent route/tool behavior across runs.",
       },
       {
-        id: "n-5-2",
+        id: "n-6-2",
         title: "Telemetry Contract",
         icon: Gauge,
-        body: "Log route, agent, provider, model, tool, handler, guard result, latency, tokens, status, and errors.",
+        body: "Log route, agent, provider, model, gateway job id, tool, handler, guard result, latency, tokens, retry count, fallback, status, and errors.",
         outcome: "Every failure becomes diagnosable.",
-        devNote: "Each response should reveal route selected, tool selected, provider used, and failure point.",
+        devNote: "Each response should reveal route selected, tool selected, provider used, gateway job status, and failure point.",
       },
       {
-        id: "n-5-3",
+        id: "n-6-3",
         title: "Normalized Response Shape",
         icon: Layers3,
-        body: "All handlers return success, answer, data, links, attachments, toolCalls, error, telemetry.",
+        body: "All handlers and gateway responses return success, answer, data, links, attachments, toolCalls, error, and telemetry.",
         outcome: "Portal rendering becomes predictable and stable.",
-        devNote: "This prevents blank portal responses caused by handler-specific return shapes.",
+        devNote: "This prevents blank UI responses caused by handler-specific or provider-specific return shapes.",
+      },
+      {
+        id: "n-6-4",
+        title: "Context Source Versioning",
+        icon: FileText,
+        body: "Tracks which app export/context pack was used to answer developer/app questions.",
+        outcome: "Prevents wrong-source answers and stale app explanations.",
+        devNote: "If the context source is disabled, stale, or missing, return context-unavailable instead of guessing.",
+        runtime: "Tags each developer/app response with context_source_id, version, and freshness timestamp.",
+        failureMode: "Stale context pack served as current, wrong app context matched to question.",
+        debugPath: "Check context_source_id in response telemetry, pack version, last refresh timestamp, and matching rules.",
+        control: "Context Source Kill Switch; per-pack enable/disable; freshness threshold.",
+        acceptance: "Stale or disabled context returns context-unavailable message instead of guessed answer.",
       },
     ],
   },
@@ -444,12 +550,12 @@ const providerOptions = [
   },
   {
     id: "p-3",
-    name: "Future: External AI Gateway",
-    icon: Cable,
-    summary: "Advanced routing, async jobs, retries, streaming, and multi-agent orchestration.",
-    bestFor: "Advanced model routing, retries, streaming, multi-agent orchestration, cross-channel use.",
-    risk: "More infrastructure and auth surface. Needs job_id/status pattern to avoid webhook timeout.",
-    pattern: "Worker -> Gateway job_id -> Bedrock/Claude/OpenAI -> status/callback -> ServiceNow executes tools",
+    name: "Target: AI Orchestration Gateway",
+    icon: Network,
+    summary: "Required v2 orchestration layer for provider routing, async job handling, retries, telemetry, response normalization, status polling, and multi-agent coordination.",
+    bestFor: "Provider routing, long-running async orchestration, multi-agent coordination, cross-channel support, retries, telemetry, and future approved model providers.",
+    risk: "Adds infrastructure and auth surface, so it must be implemented with job_id/status pattern, kill switches, structured errors, and ServiceNow-local tool execution.",
+    pattern: "ServiceNow Worker → AI Gateway job_id → Bedrock/LLM provider → status/result → ServiceNow GuardPolicyEvaluator + ToolRouter executes tools",
   },
 ];
 
@@ -480,19 +586,19 @@ const killSwitches = [
     scope: "LLM provider path",
     trigger: "Bedrock outage, LLMClient failure, external gateway latency, token/cost spike.",
     action: "Route to fallback provider or return async degraded-mode response.",
-    property: "x_kest_ai_agent_v2.llm.provider.active = llmclient | bedrock_spoke | external_gateway | disabled",
+    property: "x_kest_ai_agent_v2.llm.provider.active = llmclient | bedrock_spoke | ai_gateway | disabled",
     owner: "AI platform owner",
     icon: Route,
   },
   {
     id: "k-4",
-    title: "External Gateway Kill Switch",
-    scope: "External API only",
-    trigger: "Gateway timeout, auth issue, callback failure, queue backlog.",
-    action: "Stop external calls and fall back to ServiceNow-native provider path.",
-    property: "x_kest_ai_agent_v2.external_gateway.enabled = false",
-    owner: "Integration owner",
-    icon: Cable,
+    title: "AI Gateway Kill Switch",
+    scope: "AI Orchestration Gateway",
+    trigger: "Gateway timeout, auth issue, callback/status failure, queue backlog, provider routing bug.",
+    action: "Disable gateway path and fall back to ServiceNow-native provider path if configured, or return a structured degraded-mode response.",
+    property: "x_kest_ai_agent_v2.ai_gateway.enabled = false",
+    owner: "Gateway / integration owner",
+    icon: Network,
   },
   {
     id: "k-5",
@@ -569,17 +675,17 @@ const scenarioFlowcharts = [
   },
   {
     id: "s-3",
-    title: "External gateway async flow",
-    subtitle: "Safe long-running pattern if an external API is added later.",
+    title: "AI Gateway async flow",
+    subtitle: "Required gateway pattern for long-running provider calls, retries, status polling, and multi-agent orchestration.",
     steps: [
-      ["ServiceNow worker", "POST /agent/respond"],
-      ["Gateway", "Returns 202 + job_id fast"],
-      ["Gateway queue", "Runs provider/model call async"],
-      ["Bedrock / Claude / OpenAI", "Generates decision or answer"],
+      ["ServiceNow worker", "POST /agent/respond with conversation_id, mode, context, and available tools"],
+      ["AI Gateway", "Returns 202 + job_id quickly"],
+      ["Gateway queue", "Runs provider/model call asynchronously"],
+      ["Provider router", "Selects Bedrock / LLMClient fallback / approved provider"],
       ["Status endpoint", "ServiceNow polls job result"],
-      ["Tool decision", "Gateway returns tool calls only"],
-      ["ServiceNow ToolRouter", "Executes records locally"],
-      ["Conversation row", "Persists answer/evidence"],
+      ["Tool decision", "Gateway returns final answer, plan, or tool calls"],
+      ["ServiceNow Guard + ToolRouter", "Executes records locally"],
+      ["Conversation row", "Persists answer, evidence, telemetry"],
     ],
   },
   {
@@ -627,7 +733,7 @@ const migrationPhases = [
     phase: "Phase 2",
     title: "Add LLM Provider Router",
     summary: "Create a provider abstraction so Bedrock and external API paths do not require rewriting worker logic.",
-    items: ["Create provider interface", "Keep LLMClient as default", "Add Bedrock Spoke provider", "Add external gateway provider stub", "Log provider/model telemetry"],
+    items: ["Create provider interface", "Keep LLMClient as default", "Add Bedrock Spoke provider", "Add AI Gateway adapter contract", "Log provider/model telemetry"],
   },
   {
     id: "m-3",
@@ -640,15 +746,15 @@ const migrationPhases = [
     id: "m-4",
     phase: "Phase 4",
     title: "Multi-agent routing",
-    summary: "Split the overloaded assistant into supervisor-routed specialists.",
+    summary: "Split the overloaded assistant into supervisor-routed specialists coordinated through the gateway/supervisor pattern.",
     items: ["Supervisor Agent", "Specialist agents", "Approved composite workflow registry", "Planning Coordinator", "Shared evidence context"],
   },
   {
     id: "m-5",
     phase: "Phase 5",
-    title: "External gateway if needed",
-    summary: "Use an external gateway only when advanced provider routing or cross-channel orchestration is required.",
-    items: ["Job queue", "Streaming/status endpoints", "Provider routing", "Retry/rate limit", "Cross-channel API"],
+    title: "Implement AI Orchestration Gateway",
+    summary: "Build the required gateway layer after current stability, provider router, and Bedrock provider path are validated.",
+    items: ["Gateway API contract", "POST /agent/respond", "GET /agent/status/{job_id}", "Async job queue", "Provider routing", "Retry / rate limit / timeout handling", "Structured error normalization", "Gateway kill switch", "ServiceNow-local tool execution contract"],
   },
 ];
 
@@ -658,7 +764,10 @@ const smokeTests = [
   { name: "Compare mode", expected: "Clicking Compare should display current vs next-stage cards side by side." },
   { name: "Feature modal", expected: "Clicking any feature should open a popup with body, outcome, and developer note." },
   { name: "Kill-switch modal", expected: "Clicking any kill switch should open a popup with scope, trigger, action, property, and owner." },
-  { name: "Runtime flowcharts", expected: "The flowchart section should switch between current execution, Bedrock, external gateway, multi-agent, and kill-switch safety flows." },
+  { name: "Runtime flowcharts", expected: "The flowchart section should switch between current execution, Bedrock, AI Gateway, multi-agent, and kill-switch safety flows." },
+  { name: "AI Gateway lane", expected: "AI Orchestration Gateway lane renders in Next stage view with gateway-themed cards." },
+  { name: "Gateway Contract modals", expected: "Gateway Contract section opens request, response, and execution boundary modals." },
+  { name: "No optional gateway copy", expected: "No copy on the page describes the gateway as optional or future-only." },
 ];
 
 function cn(...classes) {
@@ -852,16 +961,22 @@ function FeatureModal({ modal, onClose }) {
 }
 
 function openNodeModal(node, mode, setModal) {
+  const sections = [
+    { label: mode === "current" ? "Why it matters" : "Expected outcome", value: node.proof || node.outcome || "Not recorded." },
+    { label: "Developer note", value: node.devNote || "Not recorded." },
+  ];
+  if (node.runtime) sections.push({ label: "Runtime responsibility", value: node.runtime });
+  if (node.failureMode) sections.push({ label: "Failure mode", value: node.failureMode, tone: "risk" });
+  if (node.debugPath) sections.push({ label: "Debug path", value: node.debugPath });
+  if (node.control) sections.push({ label: "Control / kill switch", value: node.control });
+  if (node.acceptance) sections.push({ label: "Acceptance criteria", value: node.acceptance });
   setModal({
     id: node.id,
     title: node.title,
     icon: node.icon,
     eyebrow: mode === "current" ? "Current system feature" : "Next-stage feature",
     body: node.body,
-    sections: [
-      { label: mode === "current" ? "Why it matters" : "Expected outcome", value: node.proof || node.outcome || "Not recorded." },
-      { label: "Developer note", value: node.devNote || "Not recorded." },
-    ],
+    sections,
   });
 }
 
@@ -901,7 +1016,7 @@ function FlowNode({ node, color, active, onClick }) {
   );
 }
 
-function Lane({ lane, index, activeKey, setActiveKey, mode, setModal }) {
+function Lane({ lane, index, laneCount, activeKey, setActiveKey, mode, setModal }) {
   const LaneIcon = lane.icon || Layers3;
   const theme = laneThemes[lane.color] || laneThemes.data;
 
@@ -943,7 +1058,7 @@ function Lane({ lane, index, activeKey, setActiveKey, mode, setModal }) {
           </motion.div>
         </div>
       </Card>
-      {index < 4 && (
+      {index < laneCount - 1 && (
         <motion.div
           className="absolute -right-5 top-1/2 z-10 hidden -translate-y-1/2 rounded-full p-2 text-white shadow-lg xl:block"
           style={{ background: KS.phantom }}
@@ -1160,7 +1275,7 @@ const diagramLayers = [
     boxes: [
       { id: "llmclient", label: "LLMClient", sub: "Current default", icon: BrainCircuit },
       { id: "bedrock", label: "Bedrock Spoke", sub: "ServiceNow-native", icon: Cloud },
-      { id: "gateway", label: "External Gateway", sub: "Optional future", icon: Cable },
+      { id: "gateway", label: "AI Gateway", sub: "Orchestration layer", icon: Network },
     ],
   },
   {
@@ -1220,7 +1335,7 @@ const diagramLayers = [
 
 const diagramConnections = [
   { from: "channels", to: "entry", label: "Submit prompt" },
-  { from: "entry", to: "provider", label: "Route to provider" },
+  { from: "entry", to: "provider", label: "Route to provider / gateway" },
   { from: "provider", to: "reasoning", label: "LLM response" },
   { from: "reasoning", to: "specialists", label: "Delegate to specialist" },
   { from: "specialists", to: "execution", label: "Tool calls" },
@@ -1448,6 +1563,7 @@ function TechArchitectureDiagram({ setModal }) {
             {[
               { color: laneThemes.channel.accent, label: "Channels" },
               { color: laneThemes.servicenow.accent, label: "ServiceNow" },
+              { color: KS.greenDark, label: "Gateway" },
               { color: laneThemes.provider.accent, label: "Providers" },
               { color: "#5B4BDB", label: "Reasoning / Agents" },
               { color: laneThemes.tool.accent, label: "Execution" },
@@ -1461,6 +1577,65 @@ function TechArchitectureDiagram({ setModal }) {
           </div>
         </div>
       </Card>
+    </div>
+  );
+}
+
+function GatewayContractCards({ setModal }) {
+  const cards = [
+    {
+      title: "Request Contract",
+      icon: Cable,
+      body: "Normalized request from ServiceNow to the AI Gateway.",
+      listLabel: "Request fields",
+      list: ["conversation_id", "source: service_portal | teams | api", "mode: normal | planning | developer_operator | app_context", "user_message", "context_summary", "available_tools", "specialist_hint", "provider_preference", "timeout_budget_ms"],
+    },
+    {
+      title: "Response Contract",
+      icon: Layers3,
+      body: "Normalized result returned from the gateway to ServiceNow.",
+      listLabel: "Response fields",
+      list: ["status: queued | processing | complete | failed | degraded", "job_id", "response_type: final_answer | plan | tool_calls | error", "final_answer", "plan", "tool_calls", "provider", "model", "telemetry", "error"],
+    },
+    {
+      title: "Execution Boundary",
+      icon: ShieldCheck,
+      body: "The gateway decides, plans, and routes. ServiceNow guards, executes, and audits.",
+      sections: [
+        { label: "Gateway owns", value: "Provider routing, async jobs, retries, telemetry, response normalization, multi-agent coordination." },
+        { label: "ServiceNow owns", value: "Records, ACLs, GuardPolicyEvaluator, ToolRouter, attachments, CSV export, audit trail." },
+      ],
+    },
+  ];
+
+  return (
+    <div className={cn("mx-auto mt-12 grid max-w-7xl md:grid-cols-3", LAYOUT.gridGap)}>
+      {cards.map((card) => {
+        const Icon = card.icon;
+        return (
+          <Card
+            key={card.title}
+            className={cn("bg-white/90", LAYOUT.cardRadius)}
+            onClick={() => setModal({
+              title: card.title,
+              icon: card.icon,
+              eyebrow: "AI Gateway contract",
+              body: card.body,
+              ...(card.sections ? { sections: card.sections } : {}),
+              ...(card.list ? { listLabel: card.listLabel, list: card.list } : {}),
+            })}
+          >
+            <div className={LAYOUT.cardPad}>
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-[16px] text-white" style={{ background: KS.phantom }}>
+                <Icon className="h-6 w-6" />
+              </div>
+              <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[#112245]">{card.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-[#5B6A8A]">{card.body}</p>
+              <div className="mt-5 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.greenDark }}>Open contract</div>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }
@@ -1535,7 +1710,7 @@ export default function KeenStackAgentFlowchart() {
                 <span className="block" style={{ color: KS.codeBlue, fontWeight: 500 }}>enterprise agent platform.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-[#2B3D65]">
-                A guided, clickable story of the current ServiceNow-native agent and the next-stage architecture with stability, Bedrock Spoke, optional external gateway, multi-agent routing, and kill-switch safety controls.
+                A guided, clickable story of the current ServiceNow-native agent and the next-stage architecture with stability, Bedrock Spoke as a provider path, a dedicated AI Orchestration Gateway, supervisor-led multi-agent routing, and kill-switch safety controls.
               </p>
             </motion.div>
 
@@ -1564,7 +1739,7 @@ export default function KeenStackAgentFlowchart() {
                     <div className="mt-4 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: KS.keenGreen }}>Open principle</div>
                   </button>
                   <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    {[["Current", "LLMClient + tools"], ["Next", "Provider router + Bedrock"], ["Future", "Multi-agent gateway"]].map(([top, bottom]) => (
+                    {[["Current", "LLMClient + tools"], ["Next", "Provider router + Bedrock"], ["Target", "AI Gateway + multi-agent"]].map(([top, bottom]) => (
                       <div key={top} className={cn("rounded-[18px] text-center", LAYOUT.compactPad)} style={{ background: "#EAF9F4", border: "1px solid #BFEBDD" }}>
                         <div className="text-xl font-bold text-[#112245]">{top}</div>
                         <div className="mt-1 text-xs font-bold text-[#5B6A8A]">{bottom}</div>
@@ -1589,7 +1764,7 @@ export default function KeenStackAgentFlowchart() {
                   </div>
                   <div className={cn(LAYOUT.panelRadius, LAYOUT.panelPad)} style={{ background: "#EDF4FF", border: "1px solid #C7D9FF" }}>
                     <h3 className="text-xl font-bold text-[#112245]">Next stage</h3>
-                    <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]"><li>- Regression-tested stable core</li><li>- LLMProviderRouter with LLMClient / Bedrock Spoke / Gateway</li><li>- ServiceNow-native Bedrock path without blocking requests</li><li>- Optional external gateway for advanced orchestration</li><li>- Supervisor + specialist multi-agent architecture</li></ul>
+                    <ul className="mt-4 space-y-2 text-sm leading-6 text-[#2B3D65]"><li>- Regression-tested stable core</li><li>- LLMProviderRouter with LLMClient / Bedrock Spoke / Gateway</li><li>- ServiceNow-native Bedrock path without blocking requests</li><li>- AI Orchestration Gateway as the target orchestration layer</li><li>- Supervisor + specialist multi-agent architecture</li></ul>
                   </div>
                 </div>
               </div>
@@ -1604,9 +1779,9 @@ export default function KeenStackAgentFlowchart() {
             subtitle="Click any feature card to open the story, developer note, and outcome in a popup."
           />
 
-          <div className={cn("mx-auto mt-12 grid max-w-[1800px] xl:grid-cols-5", LAYOUT.gridGap)}>
+          <div className={cn("mx-auto mt-12 grid", architecture.length >= 6 ? "max-w-[2200px] xl:grid-cols-6" : "max-w-[1800px] xl:grid-cols-5", LAYOUT.gridGap)}>
             {architecture.map((lane, index) => (
-              <Lane key={lane.lane} lane={lane} index={index} activeKey={activeKey} setActiveKey={setActiveKey} mode={view} setModal={setModal} />
+              <Lane key={lane.lane} lane={lane} index={index} laneCount={architecture.length} activeKey={activeKey} setActiveKey={setActiveKey} mode={view} setModal={setModal} />
             ))}
           </div>
         </section>
@@ -1614,6 +1789,11 @@ export default function KeenStackAgentFlowchart() {
         <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)} style={{ background: "rgba(255,255,255,0.54)" }}>
           <SectionTitle eyebrow="Provider strategy" title="Provider paths behind one router" subtitle="Bedrock Spoke is a ServiceNow-native provider option. The provider path should sit behind an LLM Provider Router to avoid hardcoding." />
           <ProviderCards setModal={setModal} />
+        </section>
+
+        <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
+          <SectionTitle eyebrow="Gateway contract" title="AI Gateway orchestration boundary" subtitle="The gateway is the orchestration boundary. ServiceNow still owns execution." />
+          <GatewayContractCards setModal={setModal} />
         </section>
 
         <section className={cn(LAYOUT.pageGutter, LAYOUT.sectionY)}>
